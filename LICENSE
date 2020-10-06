@@ -1,0 +1,6 @@
+New BSD License
+
+each included package has its own license:
+* teb_planner_pa
+* teb_planner_pa_msgs
+* teb_planner_pa_matlab

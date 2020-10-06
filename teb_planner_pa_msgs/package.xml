@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>teb_planner_pa_msgs</name>
+    <version>1.0.0</version>
+    <description>
+        This package contains all messages of the teb_planner_pa package.
+    </description>
+
+
+    <maintainer email="wepet@hrz.tu-chemnitz.de">Peter Weissig</maintainer>
+
+    <license>BSD</license>
+    <author email="wepet@hrz.tu-chemnitz.de">Peter Weissig</author>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <depend>teb_local_planner</depend>
+
+    <depend>std_msgs</depend>
+    <depend>geometry_msgs</depend>
+    <depend>nav_msgs</depend>
+    <depend>costmap_converter</depend>
+    <depend>visualization_msgs</depend>
+
+    <build_depend>message_generation</build_depend>
+    <exec_depend>message_runtime</exec_depend>
+
+    <doc_depend>doxygen</doc_depend>
+</package>

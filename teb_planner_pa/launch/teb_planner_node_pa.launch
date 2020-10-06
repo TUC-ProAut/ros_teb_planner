@@ -1,0 +1,9 @@
+<launch>
+
+    <!--- Run optimization test node -->
+    <node pkg="teb_planner_pa" type="teb_planner_node_pa" name="teb_planner_node_pa" output="screen" >
+       <rosparam file="$(find teb_planner_pa)/cfg/circular_robot_params.yaml" command="load" />
+    </node>
+
+</launch>
+

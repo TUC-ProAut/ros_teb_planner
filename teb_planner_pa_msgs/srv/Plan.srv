@@ -1,0 +1,6 @@
+# Request
+teb_planner_pa_msgs/Request request
+
+---
+# Respond
+teb_planner_pa_msgs/Respond respond

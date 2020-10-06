@@ -1,0 +1,11 @@
+<launch>
+
+    <!--- Run optimization test node -->
+    <node pkg="teb_planner_pa" type="service_test_node_pa" name="service_test_node_pa" output="screen" />
+
+    <!--- Force a service by publishing a message to the test-topic -->
+    <node pkg="rostopic" type="rostopic" name="rostopic_publisher" output="screen"
+      args="pub --once /service_test_node_pa/test std_msgs/Empty '{}'" />
+
+</launch>
+

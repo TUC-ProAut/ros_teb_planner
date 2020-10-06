@@ -1,0 +1,6 @@
+
+# ********************************************************************
+
+footprint_model:
+    type: "circular"
+    radius: 0.2 # for type "circular"
