@@ -38,7 +38,7 @@ ros-kinetic-teb-planner-pa-matlab (upcoming)
 
 #### ROS Build Status and Documentation
 
-**ROS-Distribution** | **Build-Status** | **Documentstion**
+**ROS-Distribution** | **Build-Status** | **Documentation**
 ---------------------|------------------|------------------
 Kinetic              | ---              | ---
 
