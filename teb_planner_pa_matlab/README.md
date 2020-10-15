@@ -4,13 +4,13 @@ This package only contains the matlab wrapper (class) for the
 teb_planner_pa package.
 
 This folder contains two primary folders:
-* [msgs](matlab/msgs)
+* [msgs](msgs)
     * costmap_converter
     * teb_local_planner
     * teb_planner_pa
     * visualisation_msgs
     * matlab_gen
-* [scripts](matlab/scripts)
+* [scripts](scripts)
     * startup.m
     * TebPlanner.m
 
@@ -18,13 +18,13 @@ This folder contains two primary folders:
 The matlab_gen folder is a Matlab generated folder containing the custom messages
 converted as per Matlab requirements. See 'Matlab' Section below.
 
-## [Startup Matlab Script](matlab/scripts/startup.m)
+## [Startup Matlab Script](scripts/startup.m)
 
 To make sure if all the custom messages are correctly loaded in Matlab, a startup
 script is created as a part of this package.
 Run this script before starting to work with the TebPlanner class in Matlab.
 
-## [TebPlanner Class](matlab/scripts/TebPlanner.m)
+## [TebPlanner Class](scripts/TebPlanner.m)
 
 As mentioned in the package features, this Matlab Class contains various methods
 to gather plan details from Matlab and send it to ROS teb_planner_pa package.
