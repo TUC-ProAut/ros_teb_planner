@@ -450,9 +450,6 @@ void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
     {
         init_plan.push_back(geometry_msgs::PoseStamped());
         init_plan[i].pose = init_plan_msg->poses[i];
-
-        // Remove this or change to ROS_INFO
-        ROS_INFO_STREAM("init_plan: " << init_plan[i].pose);
     }
 
     if (init_plan_msg->poses.size() != 0)
@@ -474,17 +471,14 @@ void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
             dist = std::sqrt(std::norm(posediff));
             timestamp += (dist / config.robot.max_vel_x);
             init_plan[i].header.stamp.sec = timestamp;
-            // init_plan[i].header.frame_id = "odom";
-
-            // remove later
-            ROS_INFO_STREAM("Initial plan pose stamp: "
-              << init_plan[i].header.stamp.sec << " sec");
         }
 
         // update via-points container
         if (checkGlobalWaypoints())
             updateWaypointsContainer(init_plan,
               config.trajectory.global_plan_viapoint_sep);
+
+        ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
     }
 }
 
