@@ -176,7 +176,7 @@ void CB_clicked_point(const geometry_msgs::PointStampedConstPtr& point_msg);
 void CB_clearWaypoints(const std_msgs::EmptyConstPtr& msg);
 void CB_setWaypoints(const nav_msgs::Path::ConstPtr& waypoints_msg);
 void CB_addWaypoints(const nav_msgs::Path::ConstPtr& waypoints_msg);
-void updateWayointsContainer(const std::vector<geometry_msgs::PoseStamped>&
+void updateWaypointsContainer(const std::vector<geometry_msgs::PoseStamped>&
   initial_plan, double min_separation);
 bool checkGlobalWaypoints(void);
 bool infoCustomWaypoints(void);
@@ -483,7 +483,7 @@ void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
 
         // update via-points container
         if (checkGlobalWaypoints())
-            updateWayointsContainer(init_plan,
+            updateWaypointsContainer(init_plan,
               config.trajectory.global_plan_viapoint_sep);
     }
 }
@@ -643,7 +643,7 @@ void CB_addWaypoints(const nav_msgs::Path::ConstPtr& waypoints_msg)
 
 }
 
-void updateWayointsContainer(const std::vector<geometry_msgs::PoseStamped>&
+void updateWaypointsContainer(const std::vector<geometry_msgs::PoseStamped>&
   initial_plan, double min_separation)
 {
     waypoints.clear();
