@@ -11,5 +11,6 @@ uint16 selected_trajectory_idx
 
 # List of active obstacles
 costmap_converter/ObstacleArrayMsg obstacles_msg
+costmap_converter/ObstacleArrayMsg critical_corners_msg
 
 

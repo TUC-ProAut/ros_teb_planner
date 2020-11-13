@@ -138,6 +138,7 @@ teb_planner_pa_msgs::Request helper_create_request(void)
 
     // obstacles
     costmap_converter::ObstacleArrayMsg obstacles;
+    costmap_converter::ObstacleArrayMsg critical_corners;
     geometry_msgs::Point32 point;
 
     // obst_vector.push_back(ObstaclePtr(new PointObstacle( 2, 2)));
@@ -169,6 +170,7 @@ teb_planner_pa_msgs::Request helper_create_request(void)
     req.goal  = goal_pose;
     req.waypoints = waypoints;
     req.obstacles = obstacles;
+    req.critical_corners = critical_corners;
 
     return req;
 }

@@ -59,6 +59,7 @@ classdef TebPlanner < handle
         initialPlan         = [];
         startVelocity       = [0, 0, 0]; % [vx,vy, omega]
         circularObstacle    struct; % [x,y, radius, vx,vy]
+        criticalCorners     struct;
         polylineObstacle    struct;
         polygonObstacle     struct;
         waypoint            struct;
@@ -261,6 +262,31 @@ classdef TebPlanner < handle
             out = obj.circularObstacle;
         end
 
+        % Adds critical corners
+        % Function Parameters:
+        %     position   - [x,y] position of the critical corner
+        function addCriticalCorner(obj, x, y)
+
+            if (nargin < 3); y     = 0; end
+            if (nargin < 2); x     = 0; end
+
+            critical_corner = struct( ...
+                'position', [x, y]);
+
+            if (isempty(obj.criticalCorners))
+                obj.criticalCorners = critical_corner;
+            else
+                obj.criticalCorners(end + 1) = critical_corner;
+            end
+        end
+
+        % Gets the circular obstacles present in the scenario
+        function out = getCriticalCorners(obj)
+
+            out = obj.criticalCorners;
+        end
+
+
         % Adds polyline obstacles;
         % Function Parameters:
         %    positions - should contain min. two 2-D positions
@@ -338,6 +364,12 @@ classdef TebPlanner < handle
         function clearCircularObstacle(obj)
 
             obj.circularObstacle = [];
+        end
+
+        % Delete all critical corners
+        function clearCriticalCorners(obj)
+
+            obj.criticalCorners = [];
         end
 
         % Delete all polyline obstacles
@@ -448,6 +480,24 @@ classdef TebPlanner < handle
                 msg.Obstacles.Obstacles(end + 1) = obst;
             end
 
+            % Creating critical corners
+            for i = 1:length(obj.criticalCorners)
+                obst = rosmessage('costmap_converter/ObstacleMsg');
+
+                % add single point
+                point = rosmessage('geometry_msgs/Point32');
+                point.X = obj.criticalCorners(i).position(1,1);
+                point.Y = obj.criticalCorners(i).position(1,2);
+
+                obst.Polygon.Points = point;
+
+                % add velocity
+                vel = rosmessage('geometry_msgs/TwistWithCovariance');
+                obst.Velocities = vel;
+
+                % add obst to message
+                msg.CriticalCorners.Obstacles(end + 1) = obst;
+            end
 
             % Creating polyline obstacles
             for i = 1:length(obj.polylineObstacle)

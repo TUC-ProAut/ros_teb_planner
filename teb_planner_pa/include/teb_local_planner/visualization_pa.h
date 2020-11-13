@@ -147,6 +147,14 @@ public:
     visualization_msgs::Marker msgObstaclesPoints(const ObstContainer& obstacles) const;
 
     /**
+     * @brief Convert obstacle positions (only points) to a ros message
+     *
+     * @param critical_corners Critical Corners container
+     */
+    visualization_msgs::Marker msgCriticalCorners(const ObstContainer& critical_corners) const;
+
+
+    /**
      * @brief Convert obstacle positions (only lines) to a ros message
      *
      * @param obstacles Obstacle container

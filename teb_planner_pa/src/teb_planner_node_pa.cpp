@@ -106,6 +106,7 @@
 teb_local_planner::PlannerInterfacePtr planner;
 teb_local_planner::TebVisualizationPaPtr visual;
 std::vector<teb_local_planner::ObstaclePtr> obst_vector;
+std::vector<teb_local_planner::ObstaclePtr> cc_vector;
 teb_local_planner::ViaPointContainer waypoints;
 teb_local_planner::TebConfig config;
 boost::shared_ptr <dynamic_reconfigure::Server
@@ -131,6 +132,10 @@ ros::Subscriber sub_setInitialPlan;
 ros::Subscriber sub_clearObstacles;
 ros::Subscriber sub_setObstacles;
 ros::Subscriber sub_addObstacles;
+
+ros::Subscriber sub_clearCriticalCorners;
+ros::Subscriber sub_setCriticalCorners;
+ros::Subscriber sub_addCriticalCorners;
 
 ros::Subscriber sub_clicked_points;
 ros::Subscriber sub_clearWaypoints;
@@ -171,6 +176,12 @@ void CB_setObstacles(const costmap_converter::ObstacleArrayMsg::ConstPtr&
   obst_msg);
 void CB_addObstacles(const costmap_converter::ObstacleArrayMsg::ConstPtr&
   obst_msg);
+
+void CB_clearCriticalCorners(const std_msgs::EmptyConstPtr& msg);
+void CB_setCriticalCorners(const costmap_converter::ObstacleArrayMsg::ConstPtr&
+  cc_msg);
+void CB_addCriticalCorners(const costmap_converter::ObstacleArrayMsg::ConstPtr&
+  cc_msg);
 
 void CB_clicked_point(const geometry_msgs::PointStampedConstPtr& point_msg);
 void CB_clearWaypoints(const std_msgs::EmptyConstPtr& msg);
@@ -229,6 +240,11 @@ int main(int argc, char** argv)
     sub_setObstacles   = n.subscribe("set_obstacles"  , 1, CB_setObstacles);
     sub_addObstacles   = n.subscribe("add_obstacles"  , 1, CB_addObstacles);
 
+    // setup callbacks for critical corners
+    sub_clearObstacles = n.subscribe("clear_critical_corners", 1, CB_clearCriticalCorners);
+    sub_setObstacles   = n.subscribe("set_critical_corners"  , 1, CB_setCriticalCorners);
+    sub_addObstacles   = n.subscribe("add_critical_corners"  , 1, CB_addCriticalCorners);
+
     // setup callbacks for waypoints
     sub_clicked_points = n.subscribe("/clicked_point", 5, CB_clicked_point);
 
@@ -285,6 +301,9 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
     CB_setObstacles(costmap_converter::ObstacleArrayMsgConstPtr(
       new costmap_converter::ObstacleArrayMsg(req.request.obstacles)));
 
+    CB_setCriticalCorners(costmap_converter::ObstacleArrayMsgConstPtr(
+      new costmap_converter::ObstacleArrayMsg(req.request.critical_corners)));
+
     CB_setRobotStartVelocity(geometry_msgs::Twist(req.request.start_vel));
 
     CB_clear(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
@@ -314,10 +333,11 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
           *planner_as_optimal, obst_vector);
     }
 
-    res.respond.waypoints       = visual->msgViaPoints(waypoints);
-    res.respond.obstacles_point = visual->msgObstaclesPoints(obst_vector);
-    res.respond.obstacles_line  = visual->msgObstaclesLines(obst_vector);
-    res.respond.obstacles_poly  = visual->msgObstaclesPoly(obst_vector);
+    res.respond.waypoints             = visual->msgViaPoints(waypoints);
+    res.respond.obstacles_point       = visual->msgObstaclesPoints(obst_vector);
+    res.respond.critical_corner_point = visual->msgCriticalCorners(cc_vector);
+    res.respond.obstacles_line        = visual->msgObstaclesLines(obst_vector);
+    res.respond.obstacles_poly        = visual->msgObstaclesPoly(obst_vector);
 
     return true;
 }
@@ -352,14 +372,14 @@ void CB_reset(const std_msgs::EmptyConstPtr& msg)
     {
         planner = teb_local_planner::PlannerInterfacePtr(new
           teb_local_planner::HomotopyClassPlanner(
-          config, &obst_vector, robot_model, visual, &waypoints));
+          config, &obst_vector, &cc_vector, robot_model, visual, &waypoints));
         ROS_INFO("Homotopy class planner called");
     }
     else
     {
         planner = teb_local_planner::PlannerInterfacePtr(new
           teb_local_planner::TebOptimalPlanner(
-          config, &obst_vector, robot_model, visual, &waypoints));
+          config, &obst_vector, &cc_vector, robot_model, visual, &waypoints));
         ROS_INFO("Optimal planner called");
     }
     ROS_INFO("Planner resettet.");
@@ -392,6 +412,7 @@ void CB_publish(const std_msgs::EmptyConstPtr& msg)
 {
     planner->visualize();
     visual->publishObstacles(obst_vector);
+    visual->publishCriticalCorners(cc_vector);
     visual->publishViaPoints(waypoints);
     if (init_plan.size() != 0)
     {
@@ -580,6 +601,77 @@ void CB_addObstacles(const costmap_converter::ObstacleArrayMsg::ConstPtr&
     }
 }
 
+/***************************[topics - critical corners]*******************************/
+void CB_setCriticalCorners(const costmap_converter::ObstacleArrayMsg::ConstPtr&
+  obst_msg)
+{
+    CB_clearCriticalCorners(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
+    CB_addCriticalCorners(obst_msg);
+}
+
+void CB_clearCriticalCorners(const std_msgs::EmptyConstPtr& msg)
+{
+    cc_vector.clear();
+    ROS_INFO("Critical Corners cleared.");
+}
+
+void CB_addCriticalCorners(const costmap_converter::ObstacleArrayMsg::ConstPtr&
+  obst_msg)
+{
+    size_t size_before = cc_vector.size();
+
+    // Add custom obstacles obtained via message
+    // (assume that all obstacles coordinates are specified in the
+    //  default planning frame)
+    for (size_t i = 0; i < obst_msg->obstacles.size(); ++i)
+    {
+        size_t size_old = cc_vector.size();
+        if (obst_msg->obstacles.at(i).polygon.points.size() == 1)
+        {
+            if (obst_msg->obstacles.at(i).radius == 0)
+            {
+                cc_vector.push_back(teb_local_planner::ObstaclePtr(new
+                  teb_local_planner::PointObstacle(
+                  obst_msg->obstacles.at(i).polygon.points.front().x,
+                  obst_msg->obstacles.at(i).polygon.points.front().y)));
+            }
+            else
+            {
+                cc_vector.push_back(teb_local_planner::ObstaclePtr(new
+                  teb_local_planner::CircularObstacle(
+                  obst_msg->obstacles.at(i).polygon.points.front().x,
+                  obst_msg->obstacles.at(i).polygon.points.front().y,
+                  obst_msg->obstacles.at(i).radius)));
+            }
+        }
+        else
+        {
+            teb_local_planner::PolygonObstacle* polyobst = new
+              teb_local_planner::PolygonObstacle;
+            for (size_t j=0; j < obst_msg->obstacles.at(i).polygon.points.size(); ++j)
+            {
+                polyobst->pushBackVertex(
+                  obst_msg->obstacles.at(i).polygon.points[j].x,
+                  obst_msg->obstacles.at(i).polygon.points[j].y);
+            }
+            polyobst->finalizePolygon();
+            cc_vector.push_back(teb_local_planner::ObstaclePtr(polyobst));
+        }
+
+        if (size_old != cc_vector.size())
+        {
+            cc_vector.back()->setCentroidVelocity(
+              obst_msg->obstacles.at(i).velocities,
+              obst_msg->obstacles.at(i).orientation);
+        }
+    }
+
+    size_t size_diff = cc_vector.size() - size_before;
+    if (size_diff > 0)
+    {
+        ROS_INFO_STREAM("Critical Corners added (" << size_diff << "x).");
+    }
+}
 
 
 /***************************[topics - waypoints]*******************************/

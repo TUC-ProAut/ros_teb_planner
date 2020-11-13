@@ -5,6 +5,7 @@ geometry_msgs/Pose goal
 # waypoints and obstacles
 nav_msgs/Path                      waypoints
 costmap_converter/ObstacleArrayMsg obstacles
+costmap_converter/ObstacleArrayMsg critical_corners
 
 # initial plan
 geometry_msgs/PoseArray initial_plan

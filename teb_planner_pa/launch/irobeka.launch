@@ -1,0 +1,22 @@
+<launch>
+
+    <!--- run teb-planner node -->
+    <node pkg="teb_planner_pa" type="teb_planner_node_pa"
+      name="teb_planner_node_pa" output="screen" >
+        <rosparam file="$(find teb_planner_pa)/cfg/irobeka_robot_params.yaml"
+          command="load" />
+        <param name="no_inner_iterations" value="10" />
+        <param name="no_outer_iterations" value="10" />
+        <param name="dt_hysteresis"       value="0.05" />
+        <param name="dt_force_equal"      value="true" />
+    </node>
+
+    <!--- start rviz -->
+    <node pkg="rviz" type="rviz" name="rviz" respawn="true"
+      args="-d $(find teb_planner_pa)/cfg/rviz_irobeka.rviz" />
+
+    <!--- start rqt_reconfigure -->
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"
+      respawn="true" />
+
+</launch>
