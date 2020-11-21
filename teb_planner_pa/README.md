@@ -50,12 +50,14 @@ Topic Name      | Type                 | Description
 /set_startvelocity| geometry_msgs/Twist| Sets the start velocity of the robot (vx, vy, omega)
 /request        | [teb_planner_pa_msgs/Request](../teb_planner_pa_msgs/msg/Request.msg)| Service-like topic (see also Plan Service and Custom Messages)
 /respond        | [teb_planner_pa_msgs/Respond](../teb_planner_pa_msgs/msg/Respond.msg)| Service-like topic (see also Plan Service and Custom Messages)
+/request_replan | std_msgs/Empty       | Service-like topic to replan using previous plan details (see also Plan Service)
 
 **Node Services**
 
 Service Name | Type           | Description
 -------------|----------------|------------------------------------------------------------------
 /plan        | [teb_planner_pa_msgs/Plan](../teb_planner_pa_msgs/srv/Plan.srv) | Sets all plan-details (e.g. start pose), calls the teb-planner optimisation and returns the resulting trajectory
+/replan      | [teb_planner_pa_msgs/Plan](../teb_planner_pa_msgs/srv/Plan.srv) | Replans using previous plan details and returns the resulting trajectory
 
 *The 'plan' may take a while to provide the service depending on the plan-details*
 *and package parameters*
