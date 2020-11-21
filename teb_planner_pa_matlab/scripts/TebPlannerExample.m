@@ -110,7 +110,7 @@ start(t);
 
 %% further testing (optional)
 % a) do continuous replanning
-%t.TimerFcn = 'tebplan.plan()';
+%t.TimerFcn = 'tebplan.replan()';
 
 % b) minimize distance to boundaries
 %    (dynamic reconfigure: Obstacles/min_obstacle_dist)

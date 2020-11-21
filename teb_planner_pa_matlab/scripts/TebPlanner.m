@@ -144,6 +144,66 @@ classdef TebPlanner < handle
 
             result = true;
         end
+        
+        % do the re-planning
+        function result = replan(obj)
+
+            % init result and internal variables
+            result = false;
+            obj.latestMsg = [];
+            client = obj.getRosReplanService(obj.maxTimeOut);
+
+            % fill message with no content
+            request = rosmessage(client);
+
+            % call the service
+            response = call(client,request,'Timeout', obj.maxTimeOut);
+
+            % check result
+            if (isempty(response))
+                return
+            end
+
+            % store response
+            obj.latestMsg = response.Respond;
+            result = true;
+        end
+        
+        function result = replan_using_topics(obj)
+
+            % init result and internal variables
+            result = false;
+            obj.latestMsg = [];
+
+            % create publisher & subscriber (only if not created yet)
+            pub = obj.getRosReplanPublisher();
+            sub = obj.getRosSubscriber();
+
+
+            % fill message with content
+            msg = rosmessage('std_msgs/Empty');
+
+            % trigger planning
+            sub.NewMessageFcn = @(src, msg) obj.rosCallback(src,msg);
+            pub.send(msg);
+
+            start_time = datetime();
+            while true
+                if (~isempty(obj.latestMsg))
+                    break
+                end
+
+                if (seconds(datetime() - start_time) >= obj.maxTimeOut)
+                    warning('timeout using TEB-Planner');
+                    return
+                end
+
+                drawnow();
+                pause(0.01);
+            end
+
+            result = true;
+        end
     end
 
 
@@ -616,6 +676,29 @@ classdef TebPlanner < handle
 
             out = client;
         end
+        
+        function out = getRosReplanService(timeout)
+            persistent replan_client;
+
+            if (isempty(replan_client))
+                service_name='/teb_planner_node_pa/replan';
+
+                rosnode = TebPlanner.getRosNode();
+
+                fprintf(['Creating ROS-service client for "', ...
+                  service_name, '"\n']);
+
+                if (nargin < 1)
+                  replan_client = robotics.ros.ServiceClient(rosnode, ...
+                    service_name);
+                else
+                  replan_client = robotics.ros.ServiceClient(rosnode, ...
+                    service_name, 'Timeout', timeout);
+                end
+            end
+
+            out = replan_client;
+        end
 
         function out = getRosPublisher()
             persistent pub;
@@ -651,6 +734,24 @@ classdef TebPlanner < handle
             end
 
             out = sub;
+        end
+        
+        function out = getRosReplanPublisher()
+            persistent pub;
+
+            if (isempty(pub))
+                topic_name='/teb_planner_node_pa/request_replan';
+                topic_type='std_msgs/Empty';
+
+                rosnode = TebPlanner.getRosNode();
+
+                fprintf(['Creating ROS-publisher for "', topic_name, ...
+                  '"\n']);
+                pub = robotics.ros.Publisher(rosnode, ...
+                  topic_name, topic_type);
+            end
+
+            out = pub;
         end
 
     end
