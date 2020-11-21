@@ -46,6 +46,8 @@ clearXxxxObstacle    | ---        | Dedicated clear functions for each of the ob
 clearWaypoint        | ---        | Deletes all waypoints
 plan                 | ---        | Requests for Teb Plan using a service call by sending all the plan details. Stores Response in one of the Class properties
 plan_using_topics    | ---        | Same as plan but based on the topics instead of a service call (for testing)
+replan               | ---        | Replanning using the previous plan details. Stores Response in one of the Class properties
+replan_using_topics  | ---        | Same as replan but based on topics instead of a service call
 getResultPoses       | ---        | Returns the planned trajectory consisting of poses
 getResultFeedback    | ---        | Returns the planned trajectory consisting of poses and timestamps
 
