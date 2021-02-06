@@ -89,7 +89,6 @@
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseArray.h>
 #include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -168,7 +167,7 @@ void CB_setGoal2d(const geometry_msgs::Pose2DConstPtr& pose_msg);
 void CB_setStart(const geometry_msgs::PoseConstPtr& pose_msg);
 void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg);
 
-void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg);
+void CB_setInitialPlan(const nav_msgs::Path::ConstPtr& init_plan_msg);
 void CB_clearInitialPlan(const std_msgs::EmptyConstPtr& msg);
 void CB_setRobotStartVelocity(const geometry_msgs::Twist& vel_start);
 
@@ -284,8 +283,8 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
       new geometry_msgs::Pose(req.request.start)));
     CB_setGoal(geometry_msgs::PoseConstPtr(
       new geometry_msgs::Pose(req.request.goal )));
-    CB_setInitialPlan(geometry_msgs::PoseArray::ConstPtr(
-      new geometry_msgs::PoseArray(req.request.initial_plan)));
+    CB_setInitialPlan(nav_msgs::Path::ConstPtr(
+      new nav_msgs::Path(req.request.initial_plan)));
 
     CB_setWaypoints(nav_msgs::PathConstPtr(
       new nav_msgs::Path(req.request.waypoints)));
@@ -494,21 +493,14 @@ void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg)
     ROS_INFO_STREAM("Goal pose set (" << goal_pose << ").");
 }
 
-void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
+void CB_setInitialPlan(const nav_msgs::Path::ConstPtr& init_plan_msg)
 {
 
     // clear initial plan
 	init_plan.clear();
 
-    // set header (timestamp & frame)
-    init_plan[0].header = init_plan_msg->header;
-
     // copy content
-    for (size_t i = 0; i < (init_plan_msg->poses.size()); i++)
-    {
-        init_plan.push_back(geometry_msgs::PoseStamped());
-        init_plan[i].pose = init_plan_msg->poses[i];
-    }
+    init_plan = init_plan_msg->poses;
 
     ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
 

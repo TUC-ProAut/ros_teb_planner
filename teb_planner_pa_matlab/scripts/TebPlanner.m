@@ -535,23 +535,21 @@ classdef TebPlanner < handle
 
             if (~isempty(obj.initialPlan))
                 % fill initial plan
-
-                % set the initial pose frame to odom
-                msg.InitialPlan.Header.FrameId = "odom";
-
                 for i = 1:length(obj.initialPlan)
-                    pose = rosmessage('geometry_msgs/Pose');
+                    pose_stamped = rosmessage('geometry_msgs/PoseStamped');
+                    % set frame id
+                    pose_stamped.Header.FrameId = 'odom';
                     % set point
-                    pose.Position.X = obj.initialPlan(i).x;
-                    pose.Position.Y = obj.initialPlan(i).y;
+                    pose_stamped.Pose.Position.X = obj.initialPlan(i).x;
+                    pose_stamped.Pose.Position.Y = obj.initialPlan(i).y;
                     % set Orientation
                     temp = eul2quat([obj.initialPlan(i).theta, 0, 0]);
-                    pose.Orientation.W = temp(1);
-                    pose.Orientation.X = temp(2);
-                    pose.Orientation.Y = temp(3);
-                    pose.Orientation.Z = temp(4);
+                    pose_stamped.Pose.Orientation.W = temp(1);
+                    pose_stamped.Pose.Orientation.X = temp(2);
+                    pose_stamped.Pose.Orientation.Y = temp(3);
+                    pose_stamped.Pose.Orientation.Z = temp(4);
 
-                    msg.InitialPlan.Poses(i) = pose;
+                    msg.InitialPlan.Poses(i) = pose_stamped;
                 end
             end
 

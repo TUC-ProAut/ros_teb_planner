@@ -97,7 +97,7 @@ the "**before**" token in front of the four JAR file paths:
     <before>
     MSGS_PATH/matlab_gen/jar/costmap_converter-0.0.11.jar
     MSGS_PATH/matlab_gen/jar/teb_local_planner-0.6.14.jar
-    MSGS_PATH/matlab_gen/jar/teb_planner_pa_msgs-1.0.0.jar
+    MSGS_PATH/matlab_gen/jar/teb_planner_pa_msgs-1.1.0.jar
     MSGS_PATH/matlab_gen/jar/visualization_msgs-1.12.7.jar
 ~~~~~
 

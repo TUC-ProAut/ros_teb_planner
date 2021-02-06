@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>teb_planner_pa_msgs</name>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <description>
         This package contains all messages of the teb_planner_pa package.
     </description>

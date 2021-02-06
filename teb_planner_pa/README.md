@@ -42,7 +42,7 @@ Topic Name      | Type                 | Description
 ----------------|----------------------|------------------------------------------------------------------
 /set_start2d    | geometry_msgs/Pose2D | Sets the start pose of the trajectory with inputs (x, y, theta)
 /set_goal2d     | geometry_msgs/Pose2D | Sets the goal pose of the trajectory with inputs (x, y, theta)
-/set_initialplan| geometry_msgs/PoseArray | Sets the initial plan or global plan for teb planner
+/set_initialplan| nav_msgs/Path        | Sets the initial plan or global plan for teb planner
 /add_obstacles  | costmap_converter/ObstacleArrayMsg| Adds obstacles (possible types are point, line, circular, polygonal)
 /clear_obstacles| std_msgs/Empty       | Delete all obstacles
 /add_waypoints  | nav_msgs/Path        | Adds waypoints (via-points)
@@ -125,7 +125,7 @@ teb_planner_pa
 *planned for publishing on ros buildfarm soon*
 
 ### Source code at github
-https://github.com/TUC-ProAut/ros_teb_planner 
+https://github.com/TUC-ProAut/ros_teb_planner
 
 ### ROS Build-Status and Documentation
 
