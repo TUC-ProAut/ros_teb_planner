@@ -437,7 +437,7 @@ void CB_plan(const std_msgs::EmptyConstPtr& msg)
     }
     else
     {
-        ROS_INFO("Planning using initial plan :)");
+        ROS_INFO("Planning using initial plan (ignoring start & goal pose)");
         planner->plan(init_plan, &start_vel,
           config.goal_tolerance.free_goal_vel);
     }
