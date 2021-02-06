@@ -295,6 +295,14 @@ classdef TebPlanner < handle
             out = obj.initialPlan;
         end
 
+        % Delete initial plan
+        function clearInitialPlan(obj)
+
+            obj.initialPlan = [];
+        end
+
+
+
         % Adds circular obstacle
         % Function Parameters:
         %     position   - [x,y] position of the circular obstacle
@@ -321,6 +329,12 @@ classdef TebPlanner < handle
         function out = getCircularObstacle(obj)
 
             out = obj.circularObstacle;
+        end
+
+        % Delete all circular obstacles
+        function clearCircularObstacle(obj)
+
+            obj.circularObstacle = [];
         end
 
         % Adds polyline obstacles;
@@ -350,6 +364,12 @@ classdef TebPlanner < handle
             out = obj.polylineObstacle;
         end
 
+        % Delete all polyline obstacles
+        function clearPolylineObstacle(obj)
+
+            obj.polylineObstacle = [];
+        end
+
         % Adds polygon obstacles;
         % Function Parameters:
         %    positions - should contain min. three 2-D positions
@@ -377,6 +397,12 @@ classdef TebPlanner < handle
             out = obj.polygonObstacle;
         end
 
+        % Delete all polygon obstacles
+        function clearPolygonObstacle(obj)
+
+            obj.polygonObstacle = [];
+        end
+
         % Add way-points for the trajectory
         function addWaypoint(obj,x,y)
 
@@ -396,34 +422,10 @@ classdef TebPlanner < handle
             out = obj.waypoint;
         end
 
-        % Delete all circular obstacles
-        function clearCircularObstacle(obj)
-
-            obj.circularObstacle = [];
-        end
-
-        % Delete all polyline obstacles
-        function clearPolylineObstacle(obj)
-
-            obj.polylineObstacle = [];
-        end
-
-        % Delete all polygon obstacles
-        function clearPolygonObstacle(obj)
-
-            obj.polygonObstacle = [];
-        end
-
         % Delete all way-points
         function clearWaypoint(obj)
 
             obj.waypoint = [];
-        end
-
-        % Delete initial plan
-        function clearInitialPlan(obj)
-
-            obj.initialPlan = [];
         end
     end
 
