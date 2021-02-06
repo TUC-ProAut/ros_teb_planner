@@ -331,7 +331,8 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
 }
 
 // replan without changing previous input parameters
-bool service_replan(teb_planner_pa_msgs::Plan::Request  &req, teb_planner_pa_msgs::Plan::Response &res)
+bool service_replan(teb_planner_pa_msgs::Plan::Request &req,
+  teb_planner_pa_msgs::Plan::Response &res)
 {
     CB_plan(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
 
@@ -451,7 +452,7 @@ void CB_publish(const std_msgs::EmptyConstPtr& msg)
     visual->publishViaPoints(waypoints);
     if (init_plan.size() != 0)
     {
-        visual->publishGlobalPlan(init_plan);
+        visual->publishInitialPlan(init_plan);
     }
 }
 
