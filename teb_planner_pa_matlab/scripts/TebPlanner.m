@@ -58,10 +58,10 @@ classdef TebPlanner < handle
         goalPose            = [2, 0, 0]; % [x,y, theta]
         initialPlan         = [];
         startVelocity       = [0, 0, 0]; % [vx,vy, omega]
-        circularObstacle    struct; % [x,y, radius, vx,vy]
-        polylineObstacle    struct;
-        polygonObstacle     struct;
-        waypoint            struct;
+        circularObstacles   struct; % [x,y, radius, vx,vy]
+        polylineObstacles   struct;
+        polygonObstacles    struct;
+        waypoints           struct;
 
     end
 
@@ -318,23 +318,23 @@ classdef TebPlanner < handle
                 'r'       , radius, ...
                 'velocity', velocity);
 
-            if (isempty(obj.circularObstacle))
-                obj.circularObstacle = circular_obstacle;
+            if (isempty(obj.circularObstacles))
+                obj.circularObstacles = circular_obstacle;
             else
-                obj.circularObstacle(end + 1) = circular_obstacle;
+                obj.circularObstacles(end + 1) = circular_obstacle;
             end
         end
 
         % Gets the circular obstacles present in the scenario
-        function out = getCircularObstacle(obj)
+        function out = getCircularObstacles(obj)
 
-            out = obj.circularObstacle;
+            out = obj.circularObstacles;
         end
 
         % Delete all circular obstacles
-        function clearCircularObstacle(obj)
+        function clearCircularObstacles(obj)
 
-            obj.circularObstacle = [];
+            obj.circularObstacles = [];
         end
 
         % Adds polyline obstacles;
@@ -351,23 +351,23 @@ classdef TebPlanner < handle
                 'positions', positions,...
                 'velocity' , velocity);
 
-            if (isempty(obj.polylineObstacle))
-                obj.polylineObstacle = polyline_obstacle;
+            if (isempty(obj.polylineObstacles))
+                obj.polylineObstacles = polyline_obstacle;
             else
-                obj.polylineObstacle(end + 1) = polyline_obstacle;
+                obj.polylineObstacles(end + 1) = polyline_obstacle;
             end
         end
 
         % Gets the polyline obstacles present in the scenario
-        function out = getPolylineObstacle(obj)
+        function out = getPolylineObstacles(obj)
 
-            out = obj.polylineObstacle;
+            out = obj.polylineObstacles;
         end
 
         % Delete all polyline obstacles
-        function clearPolylineObstacle(obj)
+        function clearPolylineObstacles(obj)
 
-            obj.polylineObstacle = [];
+            obj.polylineObstacles = [];
         end
 
         % Adds polygon obstacles;
@@ -384,23 +384,23 @@ classdef TebPlanner < handle
                 'positions', positions,...
                 'velocity'  , velocity);
 
-            if (isempty(obj.polygonObstacle))
-                obj.polygonObstacle = polygon_obstacle;
+            if (isempty(obj.polygonObstacles))
+                obj.polygonObstacles = polygon_obstacle;
             else
-                obj.polygonObstacle(end + 1) = polygon_obstacle;
+                obj.polygonObstacles(end + 1) = polygon_obstacle;
             end
         end
 
         % Gets the polygon obstacles present in the scenario
-        function out = getPolygonObstacle(obj)
+        function out = getPolygonObstacles(obj)
 
-            out = obj.polygonObstacle;
+            out = obj.polygonObstacles;
         end
 
         % Delete all polygon obstacles
-        function clearPolygonObstacle(obj)
+        function clearPolygonObstacles(obj)
 
-            obj.polygonObstacle = [];
+            obj.polygonObstacles = [];
         end
 
 
@@ -421,23 +421,23 @@ classdef TebPlanner < handle
             way_point = struct(...
                'x', x, 'y', y);
 
-            if (isempty(obj.waypoint))
-                obj.waypoint = way_point;
+            if (isempty(obj.waypoints))
+                obj.waypoints = way_point;
             else
-                obj.waypoint(end + 1) = way_point;
+                obj.waypoints(end + 1) = way_point;
             end
         end
 
         % Get way-points added to generate trajectory
-        function out = getWaypoint(obj)
+        function out = getWaypoints(obj)
 
-            out = obj.waypoint;
+            out = obj.waypoints;
         end
 
         % Delete all way-points
-        function clearWaypoint(obj)
+        function clearWaypoints(obj)
 
-            obj.waypoint = [];
+            obj.waypoints = [];
         end
     end
 
@@ -501,21 +501,21 @@ classdef TebPlanner < handle
             msg.StartVel.Angular.Z = obj.startVelocity(3);
 
             % Creating point or circular obstacles
-            for i = 1:length(obj.circularObstacle)
+            for i = 1:length(obj.circularObstacles)
                 obst = rosmessage('costmap_converter/ObstacleMsg');
-                obst.Radius = obj.circularObstacle(i).r;
+                obst.Radius = obj.circularObstacles(i).r;
 
                 % add single point
                 point = rosmessage('geometry_msgs/Point32');
-                point.X = obj.circularObstacle(i).position(1,1);
-                point.Y = obj.circularObstacle(i).position(1,2);
+                point.X = obj.circularObstacles(i).position(1,1);
+                point.Y = obj.circularObstacles(i).position(1,2);
 
                 obst.Polygon.Points = point;
 
                 % add velocity
                 vel = rosmessage('geometry_msgs/TwistWithCovariance');
-                vel.Twist.Linear.X = obj.circularObstacle(i).velocity(1,1);
-                vel.Twist.Linear.Y = obj.circularObstacle(i).velocity(1,2);
+                vel.Twist.Linear.X = obj.circularObstacles(i).velocity(1,1);
+                vel.Twist.Linear.Y = obj.circularObstacles(i).velocity(1,2);
 
                 obst.Velocities = vel;
 
@@ -525,19 +525,19 @@ classdef TebPlanner < handle
 
 
             % Creating polyline obstacles
-            for i = 1:length(obj.polylineObstacle)
+            for i = 1:length(obj.polylineObstacles)
                 % add dimensions
-                for j = 1: size(obj.polylineObstacle(i).positions,1) - 1
+                for j = 1: size(obj.polylineObstacles(i).positions,1) - 1
                     polyl_obst = rosmessage('costmap_converter/ObstacleMsg');
                     % point 1
                     point1 = rosmessage('geometry_msgs/Point32');
-                    point1.X = obj.polylineObstacle(i).positions(j,1);
-                    point1.Y = obj.polylineObstacle(i).positions(j,2);
+                    point1.X = obj.polylineObstacles(i).positions(j,1);
+                    point1.Y = obj.polylineObstacles(i).positions(j,2);
 
                     % point 2
                     point2 = rosmessage('geometry_msgs/Point32');
-                    point2.X = obj.polylineObstacle(i).positions(j+1,1);
-                    point2.Y = obj.polylineObstacle(i).positions(j+1,2);
+                    point2.X = obj.polylineObstacles(i).positions(j+1,1);
+                    point2.Y = obj.polylineObstacles(i).positions(j+1,2);
 
                     % add points
                     polyl_obst.Polygon.Points    = point1;
@@ -550,33 +550,33 @@ classdef TebPlanner < handle
 
 
             % Creating polygon obstacles
-            for i = 1:length(obj.polygonObstacle)
+            for i = 1:length(obj.polygonObstacles)
                 polygon_obst = rosmessage('costmap_converter/ObstacleMsg');
 
                 % add dimensions
-                for j = 1: size(obj.polygonObstacle(i).positions,1)
+                for j = 1: size(obj.polygonObstacles(i).positions,1)
                     point(j) = rosmessage('geometry_msgs/Point32');
 
-                    point(j).X = obj.polygonObstacle(i).positions(j,1);
-                    point(j).Y = obj.polygonObstacle(i).positions(j,2);
+                    point(j).X = obj.polygonObstacles(i).positions(j,1);
+                    point(j).Y = obj.polygonObstacles(i).positions(j,2);
                     polygon_obst.Polygon.Points(j) = point(j);
 
                 end
 
                 % add velocity
                 vel = rosmessage('geometry_msgs/TwistWithCovariance');
-                vel.Twist.Linear.X = obj.polygonObstacle(i).velocity(1,1);
-                vel.Twist.Linear.Y = obj.polygonObstacle(i).velocity(1,2);
+                vel.Twist.Linear.X = obj.polygonObstacles(i).velocity(1,1);
+                vel.Twist.Linear.Y = obj.polygonObstacles(i).velocity(1,2);
 
                 polygon_obst.Velocities = vel;
                 msg.Obstacles.Obstacles(end + 1) = polygon_obst;
             end
 
-            % Add waypoint
-            for i = 1:length(obj.waypoint)
+            % Add waypoints
+            for i = 1:length(obj.waypoints)
                 point   = rosmessage('geometry_msgs/Point');
-                point.X = obj.waypoint(i).x;
-                point.Y = obj.waypoint(i).y;
+                point.X = obj.waypoints(i).x;
+                point.Y = obj.waypoints(i).y;
 
                 pose_stamped = rosmessage('geometry_msgs/PoseStamped');
                 pose_stamped.Pose.Position  = point;
