@@ -403,6 +403,18 @@ classdef TebPlanner < handle
             obj.polygonObstacle = [];
         end
 
+
+
+        % Deletes all obstacles
+        function clearObstacles(obj)
+
+            obj.clearCircularObstacles();
+            obj.clearPolylineObstacles();
+            obj.clearPolygonObstacles();
+        end
+
+
+
         % Add way-points for the trajectory
         function addWaypoint(obj,x,y)
 
