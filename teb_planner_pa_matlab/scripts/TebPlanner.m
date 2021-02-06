@@ -144,7 +144,7 @@ classdef TebPlanner < handle
 
             result = true;
         end
-        
+
         % do the re-planning
         function result = replan(obj)
 
@@ -168,7 +168,7 @@ classdef TebPlanner < handle
             obj.latestMsg = response.Respond;
             result = true;
         end
-        
+
         function result = replan_using_topics(obj)
 
             % init result and internal variables
@@ -273,6 +273,8 @@ classdef TebPlanner < handle
 
             out = obj.startVelocity;
         end
+
+
 
         % Add initial plan
         % Function Parameters:
@@ -423,7 +425,6 @@ classdef TebPlanner < handle
 
             obj.initialPlan = [];
         end
-
     end
 
 
@@ -540,11 +541,11 @@ classdef TebPlanner < handle
 
                 % add dimensions
                 for j = 1: size(obj.polygonObstacle(i).positions,1)
-                 point(j) = rosmessage('geometry_msgs/Point32');
+                    point(j) = rosmessage('geometry_msgs/Point32');
 
-                 point(j).X = obj.polygonObstacle(i).positions(j,1);
-                 point(j).Y = obj.polygonObstacle(i).positions(j,2);
-                 polygon_obst.Polygon.Points(j) = point(j);
+                    point(j).X = obj.polygonObstacle(i).positions(j,1);
+                    point(j).Y = obj.polygonObstacle(i).positions(j,2);
+                    polygon_obst.Polygon.Points(j) = point(j);
 
                 end
 
@@ -676,7 +677,7 @@ classdef TebPlanner < handle
 
             out = client;
         end
-        
+
         function out = getRosReplanService(timeout)
             persistent replan_client;
 
@@ -735,7 +736,7 @@ classdef TebPlanner < handle
 
             out = sub;
         end
-        
+
         function out = getRosReplanPublisher()
             persistent pub;
 
