@@ -495,28 +495,26 @@ void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg)
 
 void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
 {
-    // Clear initial plan
-    CB_clearInitialPlan(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
 
-    // Add the poses
+    // clear initial plan
+	init_plan.clear();
+
+    // set header (timestamp & frame)
+    init_plan[0].header = init_plan_msg->header;
+
+    // copy content
     for (size_t i = 0; i < (init_plan_msg->poses.size()); i++)
     {
         init_plan.push_back(geometry_msgs::PoseStamped());
         init_plan[i].pose = init_plan_msg->poses[i];
     }
 
-    if (init_plan_msg->poses.size() != 0)
-    {
-        // Set header (timestamp & frame)
-        init_plan[0].header = init_plan_msg->header;
+    ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
 
-        // update via-points container
-        if (checkGlobalWaypoints())
-            updateWaypointsContainer(init_plan,
-              config.trajectory.global_plan_viapoint_sep);
-
-        ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
-    }
+    // update via-points container
+    if (checkGlobalWaypoints())
+        updateWaypointsContainer(init_plan,
+          config.trajectory.global_plan_viapoint_sep);
 }
 
 void CB_clearInitialPlan(const std_msgs::EmptyConstPtr& msg)

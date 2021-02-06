@@ -6,14 +6,14 @@ ROS [teb_local_planner](http://wiki.ros.org/teb_local_planner) package.
 
 ## Features
 
-* [wrapper node](src/teb_planner_node_pa.cpp) to call teb-planner
+* [wrapper node](teb_planner/src/teb_planner_node_pa.cpp) to call teb-planner
 without navigation stack
     * based on test_optim_node
     * single topics for playing around/testing the basic functionalities of
     the teb-planner
     * service for convenient call (setting all plan details)/ also topic interface
     for testing
-* [test-node](src/service_test_node_pa.cpp) to check service-based
+* [test-node](teb_planner/src/service_test_node_pa.cpp) to check service-based
 interface
 
 *Hint: This package is currently implemented and tested only for ROS kinetic and*
@@ -48,16 +48,14 @@ Topic Name      | Type                 | Description
 /add_waypoints  | nav_msgs/Path        | Adds waypoints (via-points)
 /clear_waypoints| std_msgs/Empty       | Deletes all waypoints
 /set_startvelocity| geometry_msgs/Twist| Sets the start velocity of the robot (vx, vy, omega)
-/request        | [teb_planner_pa_msgs/Request](../teb_planner_pa_msgs/msg/Request.msg)| Service-like topic (see also Plan Service and Custom Messages)
-/respond        | [teb_planner_pa_msgs/Respond](../teb_planner_pa_msgs/msg/Respond.msg)| Service-like topic (see also Plan Service and Custom Messages)
-/request_replan | std_msgs/Empty       | Service-like topic to replan using previous plan details (see also Plan Service)
+/request        | [teb_planner_pa_msgs/Request](msg/Request.msg)| Service-like topic (see also Plan Service and Custom Messages)
+/respond        | [teb_planner_pa_msgs/Respond](msg/Respond.msg)| Service-like topic (see also Plan Service and Custom Messages)
 
 **Node Services**
 
 Service Name | Type           | Description
 -------------|----------------|------------------------------------------------------------------
-/plan        | [teb_planner_pa_msgs/Plan](../teb_planner_pa_msgs/srv/Plan.srv) | Sets all plan-details (e.g. start pose), calls the teb-planner optimisation and returns the resulting trajectory
-/replan      | [teb_planner_pa_msgs/Plan](../teb_planner_pa_msgs/srv/Plan.srv) | Replans using previous plan details and returns the resulting trajectory
+/plan        | [teb_planner_pa_msgs/Plan](srv/Plan.srv) | Sets all plan-details (e.g. start pose), calls the teb-planner optimisation and returns the resulting trajectory
 
 *The 'plan' may take a while to provide the service depending on the plan-details*
 *and package parameters*
@@ -94,7 +92,7 @@ The Plan Service contains request and response:
     teb_planner_pa_msgs/Respond respond
 ~~~~~
 
-They are of custom message type [Request](../teb_planner_pa_msgs/msg/Request.msg) and [Respond](../teb_planner_pa_msgs/msg/Respond.msg)
+They are of custom message type [Request](msgs/Request.msg) and [Respond](msgs/Respond.msg)
 respectively. Various messages types are combined to form the custom messages:
 
 - **Request**: start, goal, waypoints, obstacles, start_vel
