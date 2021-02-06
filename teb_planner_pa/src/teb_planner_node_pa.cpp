@@ -495,9 +495,6 @@ void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg)
 
 void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
 {
-    double dist;
-    double timestamp{0.0};
-
     // Clear initial plan
     CB_clearInitialPlan(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
 
@@ -510,24 +507,8 @@ void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
 
     if (init_plan_msg->poses.size() != 0)
     {
-        // Add the timestamps
-
-        // Set sec to zero through msg
-        init_plan[0].header.stamp.sec = init_plan_msg->header.stamp.sec;
-
-        // Set frame_id to odom through msg
-        init_plan[0].header.frame_id = init_plan_msg->header.frame_id;
-
-        for (size_t i = 1; i < (init_plan.size()); i++)
-        {
-            std::complex<double> posediff((init_plan[i].pose.position.x -
-              init_plan[i-1].pose.position.x),
-              (init_plan[i].pose.position.y - init_plan[i-1].pose.position.y));
-
-            dist = std::sqrt(std::norm(posediff));
-            timestamp += (dist / config.robot.max_vel_x);
-            init_plan[i].header.stamp.sec = timestamp;
-        }
+        // Set header (timestamp & frame)
+        init_plan[0].header = init_plan_msg->header;
 
         // update via-points container
         if (checkGlobalWaypoints())
