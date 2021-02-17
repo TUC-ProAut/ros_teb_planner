@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
   tf
   tf_conversions
+  tf2_geometry_msgs
 )
 
 ## C++11 support
@@ -72,6 +73,7 @@ catkin_package(
 
     tf
     tf_conversions
+    tf2_geometry_msgs
   DEPENDS
 )
 
