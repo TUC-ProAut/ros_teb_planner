@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
   tf
   tf_conversions
+  tf2_geometry_msgs
 )
 
 ## C++11 support
@@ -72,6 +73,7 @@ catkin_package(
 
     tf
     tf_conversions
+    tf2_geometry_msgs
   DEPENDS
 )
 
@@ -96,7 +98,7 @@ add_executable(teb_planner_node_pa src/teb_planner_node_pa.cpp)
 
 add_dependencies(teb_planner_node_pa
   teb_planner_pa
-  #${PROJECT_NAME}_gencfg
+  ${catkin_EXPORTED_TARGETS}
 )
 
 target_link_libraries(teb_planner_node_pa
@@ -107,9 +109,9 @@ target_link_libraries(teb_planner_node_pa
 ## Build executables (test node)
 add_executable(service_test_node_pa src/service_test_node_pa.cpp)
 
-#add_dependencies(service_test_node_pa
-  #${PROJECT_NAME}_gencfg
-#)
+add_dependencies(service_test_node_pa
+  ${catkin_EXPORTED_TARGETS}
+)
 
 target_link_libraries(service_test_node_pa
   ${catkin_LIBRARIES}
