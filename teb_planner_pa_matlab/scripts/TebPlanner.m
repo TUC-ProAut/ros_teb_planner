@@ -54,16 +54,15 @@ classdef TebPlanner < handle
     end
 
     properties (SetAccess = private)
-        startPose           = [0, 0, 0]; % [x,y, theta]
-        goalPose            = [2, 0, 0]; % [x,y, theta]
-        initialPlan         = [];
-        startVelocity       = [0, 0, 0]; % [vx,vy, omega]
-        circularObstacle    struct; % [x,y, radius, vx,vy]
-        criticalCorners     struct;
-        polylineObstacle    struct;
-        polygonObstacle     struct;
-        waypoint            struct;
-
+        startPose           struct; %   [x,y, theta]
+        goalPose            struct; %   [x,y, theta]
+        initialPlan         struct; % n*[x,y, theta]
+        startVelocity       struct; %   [vx,vy, omega]
+        circularObstacles   struct; % n*[x,y, radius, vx,vy]
+        polylineObstacles   struct; % n*[points=m*[x,y]  , vx,vy]
+        polygonObstacles    struct; % n*[points=m*[x,y]  , vx,vy]
+        waypoints           struct; % n*[x,y]
+        criticalCorners     struct; % n*[x,y]
     end
 
     properties (Access = private)
@@ -77,7 +76,16 @@ classdef TebPlanner < handle
         function obj = TebPlanner()
             %Construct an instance of this class
 
-            % ... nothing todo ^^
+            % initialize start & goal pose
+            obj.setStartPose();
+            obj.setGoalPose(2, 0);
+            obj.setStartVelocity();
+
+            % initialize empty structs to show fields
+            obj.clearInitialPlan();
+            obj.clearWaypoints();
+            obj.clearObstacles();
+            obj.clearCriticalCorners();
         end
     end
 
@@ -145,6 +153,66 @@ classdef TebPlanner < handle
 
             result = true;
         end
+
+        % do the re-planning
+        function result = replan(obj)
+
+            % init result and internal variables
+            result = false;
+            obj.latestMsg = [];
+            client = obj.getRosReplanService(obj.maxTimeOut);
+
+            % fill message with no content
+            request = rosmessage(client);
+
+            % call the service
+            response = call(client,request,'Timeout', obj.maxTimeOut);
+
+            % check result
+            if (isempty(response))
+                return
+            end
+
+            % store response
+            obj.latestMsg = response.Respond;
+            result = true;
+        end
+
+        function result = replan_using_topics(obj)
+
+            % init result and internal variables
+            result = false;
+            obj.latestMsg = [];
+
+            % create publisher & subscriber (only if not created yet)
+            pub = obj.getRosReplanPublisher();
+            sub = obj.getRosSubscriber();
+
+
+            % fill message with content
+            msg = rosmessage('std_msgs/Empty');
+
+            % trigger planning
+            sub.NewMessageFcn = @(src, msg) obj.rosCallback(src,msg);
+            pub.send(msg);
+
+            start_time = datetime();
+            while true
+                if (~isempty(obj.latestMsg))
+                    break
+                end
+
+                if (seconds(datetime() - start_time) >= obj.maxTimeOut)
+                    warning('timeout using TEB-Planner');
+                    return
+                end
+
+                drawnow();
+                pause(0.01);
+            end
+
+            result = true;
+        end
     end
 
 
@@ -166,12 +234,16 @@ classdef TebPlanner < handle
 
         % Sets the starting pose for the teb-planner
         %   (theta is measured in radians)
-        function setStartPose(obj, x, y, theta)
+        function pose = setStartPose(obj, x, y, theta)
 
             if (nargin < 4); theta = 0; end
             if (nargin < 3); y     = 0; end
             if (nargin < 2); x     = 0; end
-            obj.startPose = [x, y, theta];
+            pose = struct( ...
+              'x'    , x(1), ...
+              'y'    , y(1), ...
+              'theta', theta(1));
+            obj.startPose = pose;
         end
 
         % Gets the starting pose for the teb-planner
@@ -182,11 +254,14 @@ classdef TebPlanner < handle
 
         % Sets the goal pose for the teb-planner
         %   (theta is measured in radians)
-        function setGoalPose(obj, x, y, theta)
+        function pose = setGoalPose(obj, x, y, theta)
 
             if (nargin < 4); theta = 0; end
-
-            obj.goalPose = [x, y, theta];
+            pose = struct( ...
+              'x'    , x(1), ...
+              'y'    , y(1), ...
+              'theta', theta(1));
+            obj.goalPose = pose;
         end
 
         % Gets the goal pose for the teb-planner
@@ -201,12 +276,16 @@ classdef TebPlanner < handle
         %     vy    - velocity component in y-direction
         %     omega - angular velocity
         %             (measured in radians per second)
-        function setStartVelocity(obj,vx,vy,omega)
+        function velocity = setStartVelocity(obj, vx, vy, omega)
 
             if (nargin < 4); omega = 0; end
             if (nargin < 3); vy    = 0; end
             if (nargin < 2); vx    = 0; end
-            obj.startVelocity = [vx, vy, omega];
+            velocity = struct( ...
+              'vx'   , vx(1), ...
+              'vy'   , vy(1), ...
+              'omega', omega(1));
+            obj.startVelocity = velocity;
         end
 
         % Get start velocity of the robot
@@ -215,17 +294,24 @@ classdef TebPlanner < handle
             out = obj.startVelocity;
         end
 
+
+
         % Add initial plan
         % Function Parameters:
-        %     poses  - [x1,y1,theta1; x2,y2,theta2..; xn,yn,thetan]
-        function setInitialPlan(obj,poses)
+        %     poses  - [x1,y1,theta1; x2,y2,theta2; ...; xn,yn,thetan]
+        function initial_plan = setInitialPlan(obj, poses)
 
-            if (nargin < 2)
-                error('Initial plan not set correctly');
-            elseif (length(poses) < 6)
-                error('Initial plan should contain min. 6 poses');
+            if (size(poses, 2) < 3); poses(1,3) = 0; end
+
+            obj.clearInitialPlan();
+            initial_plan = obj.initialPlan;
+            for i = 1:size(poses, 1)
+                initial_plan(i).x     = poses(i,1);
+                initial_plan(i).y     = poses(i,2);
+                initial_plan(i).theta = poses(i,3);
             end
-            obj.initialPlan = poses;
+
+            obj.initialPlan = initial_plan;
         end
 
         % Get the initial plan added for the robot
@@ -234,44 +320,199 @@ classdef TebPlanner < handle
             out = obj.initialPlan;
         end
 
+        % Delete initial plan
+        function clearInitialPlan(obj)
+
+            obj.initialPlan = struct( ...
+              'x'    , {}, ...
+              'y'    , {}, ...
+              'theta', {});
+        end
+
+
+
         % Adds circular obstacle
         % Function Parameters:
         %     position   - [x,y] position of the circular obstacle
         %     velocity   - [vx,vy] components of obstacle velocity
         %     radius     - radius of circular obstacle
-        function addCircularObstacle(obj,position,velocity,radius)
+        function obstacle = addCircularObstacle(obj, ...
+          position, velocity, radius)
 
             if (nargin < 4); radius   = 0; end
             if (nargin < 3); velocity = [0, 0]; end % vx, vy
+            if (length(velocity) < 2); velocity(2) = 0; end
+            if (length(position) < 2); position(2) = 0; end
 
-            circular_obstacle = struct( ...
-                'position', position,...
-                'r'       , radius, ...
-                'velocity', velocity);
+            obstacle = struct( ...
+              'x'      , position(1), ...
+              'y'      , position(2), ...
+              'radius' , radius(1), ...
+              'vx'     , velocity(1), ...
+              'vy'     , velocity(2));
 
-            if (isempty(obj.circularObstacle))
-                obj.circularObstacle = circular_obstacle;
+            if (isempty(obj.circularObstacles))
+                obj.circularObstacles = obstacle;
             else
-                obj.circularObstacle(end + 1) = circular_obstacle;
+                obj.circularObstacles(end + 1) = obstacle;
             end
         end
 
         % Gets the circular obstacles present in the scenario
-        function out = getCircularObstacle(obj)
+        function out = getCircularObstacles(obj)
 
-            out = obj.circularObstacle;
+            out = obj.circularObstacles;
         end
+
+        % Deletes all circular obstacles
+        function clearCircularObstacles(obj)
+
+            obj.circularObstacles = struct( ...
+              'x'      , {}, ...
+              'y'      , {}, ...
+              'radius' , {}, ...
+              'vx'     , {}, ...
+              'vy'     , {});
+        end
+
+        % Adds polyline obstacles;
+        % Function Parameters:
+        %    points - should contain min. two 2-D points
+        %                for generating polyline
+        %                e.g. [x1,y1; x2,y2; x3,y3]
+        %    velocity   - [vx,vy] components of obstacle velocity
+        function obstacle = addPolylineObstacle(obj, points, velocity)
+
+            if (nargin < 3);  velocity = [0,0]; end
+            if (length(velocity) < 2); velocity(2) = 0; end
+            assert(size(points,1) >= 2, ...
+              'PolylineObstacle need at least 2 points');
+
+            obstacle = struct( ...
+              'points', struct('x', {}, 'y', {}), ...
+              'vx'    , velocity(1), ...
+              'vy'    , velocity(2));
+            for i = 1:size(points, 1)
+                obstacle.points(i).x = points(i,1);
+                obstacle.points(i).y = points(i,2);
+            end
+
+            if (isempty(obj.polylineObstacles))
+                obj.polylineObstacles = obstacle;
+            else
+                obj.polylineObstacles(end + 1) = obstacle;
+            end
+        end
+
+        % Gets the polyline obstacles present in the scenario
+        function out = getPolylineObstacles(obj)
+
+            out = obj.polylineObstacles;
+        end
+
+        % Deletes all polyline obstacles
+        function clearPolylineObstacles(obj)
+
+            obj.polylineObstacles = struct( ...
+              'points', {}, ...
+              'vx'    , {}, ...
+              'vy'    , {});
+        end
+
+        % Adds polygon obstacles;
+        % Function Parameters:
+        %    points - should contain min. three 2-D points
+        %                for generating a polygon
+        %                e.g. [x1,y1; x2,y2; x3,y3; x4,y4]
+        %    velocity   - [vx,vy] components of obstacle velocity
+        function obstacle = addPolygonObstacle(obj,points,velocity)
+
+            if (nargin < 3);  velocity = [0,0]; end
+            if (length(velocity) < 2); velocity(2) = 0; end
+            assert(size(points,1) >= 3, ...
+              'PolygonObstacle need at least 3 points');
+
+            obstacle = struct( ...
+              'points', struct('x', {}, 'y', {}), ...
+              'vx'    , velocity(1), ...
+              'vy'    , velocity(2));
+            for i = 1:size(points, 1)
+                obstacle.points(i).x = points(i,1);
+                obstacle.points(i).y = points(i,2);
+            end
+
+            if (isempty(obj.polygonObstacle))
+                obj.polygonObstacles = obstacle;
+            else
+                obj.polygonObstacles(end + 1) = obstacle;
+            end
+        end
+
+        % Gets the polygon obstacles present in the scenario
+        function out = getPolygonObstacles(obj)
+
+            out = obj.polygonObstacles;
+        end
+
+        % Deletes all polygon obstacles
+        function clearPolygonObstacles(obj)
+
+            obj.polygonObstacles = struct( ...
+              'points', {}, ...
+              'vx'    , {}, ...
+              'vy'    , {});
+        end
+
+
+
+        % Deletes all obstacles
+        function clearObstacles(obj)
+
+            obj.clearCircularObstacles();
+            obj.clearPolylineObstacles();
+            obj.clearPolygonObstacles();
+        end
+
+
+
+        % Adds one way-point to the trajectory
+        function addWaypoint(obj, x, y)
+
+            way_point = struct(...
+               'x', x(1), ...
+               'y', y(1));
+
+            if (isempty(obj.waypoint))
+                obj.waypoints = way_point;
+            else
+                obj.waypoints(end + 1) = way_point;
+            end
+        end
+
+        % Gets all way-points added to generate trajectory
+        function out = getWaypoints(obj)
+
+            out = obj.waypoints;
+        end
+
+        % Delete all way-points
+        function clearWaypoints(obj)
+
+            obj.waypoints = struct(...
+               'x', {}, ...
+               'y', {});
+        end
+
+
 
         % Adds critical corners
         % Function Parameters:
         %     position   - [x,y] position of the critical corner
-        function addCriticalCorner(obj, x, y)
+        function critical_corner = addCriticalCorner(obj, x, y)
 
-            if (nargin < 3); y     = 0; end
-            if (nargin < 2); x     = 0; end
-
-            critical_corner = struct( ...
-                'position', [x, y]);
+            critical_corner = struct(...
+               'x', x(1), ...
+               'y', y(1));
 
             if (isempty(obj.criticalCorners))
                 obj.criticalCorners = critical_corner;
@@ -280,122 +521,19 @@ classdef TebPlanner < handle
             end
         end
 
-        % Gets the circular obstacles present in the scenario
+        % Gets the critical corners present in the scenario
         function out = getCriticalCorners(obj)
 
             out = obj.criticalCorners;
         end
 
-
-        % Adds polyline obstacles;
-        % Function Parameters:
-        %    positions - should contain min. two 2-D positions
-        %                for generating polyline
-        %                e.g. [x1,y1; x2,y2; x3,y3]
-        %    velocity   - [vx,vy] components of obstacle velocity
-        function addPolylineObstacle(obj,positions,velocity)
-
-            if (nargin < 3);  velocity = [0,0]; end
-
-            polyline_obstacle = struct(...
-                'positions', positions,...
-                'velocity' , velocity);
-
-            if (isempty(obj.polylineObstacle))
-                obj.polylineObstacle = polyline_obstacle;
-            else
-                obj.polylineObstacle(end + 1) = polyline_obstacle;
-            end
-        end
-
-        % Gets the polyline obstacles present in the scenario
-        function out = getPolylineObstacle(obj)
-
-            out = obj.polylineObstacle;
-        end
-
-        % Adds polygon obstacles;
-        % Function Parameters:
-        %    positions - should contain min. three 2-D positions
-        %                for generating a polygon
-        %                e.g. [x1,y1; x2,y2; x3,y3; x4,y4]
-        %    velocity   - [vx,vy] components of obstacle velocity
-        function addPolygonObstacle(obj,positions,velocity)
-
-            if (nargin < 3);  velocity = [0,0]; end
-
-            polygon_obstacle = struct(...
-                'positions', positions,...
-                'velocity'  , velocity);
-
-            if (isempty(obj.polygonObstacle))
-                obj.polygonObstacle = polygon_obstacle;
-            else
-                obj.polygonObstacle(end + 1) = polygon_obstacle;
-            end
-        end
-
-        % Gets the polygon obstacles present in the scenario
-        function out = getPolygonObstacle(obj)
-
-            out = obj.polygonObstacle;
-        end
-
-        % Add way-points for the trajectory
-        function addWaypoint(obj,x,y)
-
-            way_point = struct(...
-               'x', x, 'y', y);
-
-            if (isempty(obj.waypoint))
-                obj.waypoint = way_point;
-            else
-                obj.waypoint(end + 1) = way_point;
-            end
-        end
-
-        % Get way-points added to generate trajectory
-        function out = getWaypoint(obj)
-
-            out = obj.waypoint;
-        end
-
-        % Delete all circular obstacles
-        function clearCircularObstacle(obj)
-
-            obj.circularObstacle = [];
-        end
-
         % Delete all critical corners
         function clearCriticalCorners(obj)
 
-            obj.criticalCorners = [];
+            obj.criticalCorners = struct(...
+               'x', {}, ...
+               'y', {});
         end
-
-        % Delete all polyline obstacles
-        function clearPolylineObstacle(obj)
-
-            obj.polylineObstacle = [];
-        end
-
-        % Delete all polygon obstacles
-        function clearPolygonObstacle(obj)
-
-            obj.polygonObstacle = [];
-        end
-
-        % Delete all way-points
-        function clearWaypoint(obj)
-
-            obj.waypoint = [];
-        end
-
-        % Delete initial plan
-        function clearInitialPlan(obj)
-
-            obj.initialPlan = [];
-        end
-
     end
 
 
@@ -410,18 +548,18 @@ classdef TebPlanner < handle
             msg = rosmessage(topic_type);
 
             % fill starting pose
-            msg.Start.Position.X = obj.startPose(1);
-            msg.Start.Position.Y = obj.startPose(2);
-            temp = eul2quat([obj.startPose(3), 0, 0]);
+            msg.Start.Position.X = obj.startPose.x;
+            msg.Start.Position.Y = obj.startPose.y;
+            temp = eul2quat([obj.startPose.theta, 0, 0]);
             msg.Start.Orientation.W = temp(1);
             msg.Start.Orientation.X = temp(2);
             msg.Start.Orientation.Y = temp(3);
             msg.Start.Orientation.Z = temp(4);
 
             % fill goal pose
-            msg.Goal.Position.X = obj.goalPose(1);
-            msg.Goal.Position.Y = obj.goalPose(2);
-            temp = eul2quat([obj.goalPose(3), 0, 0]);
+            msg.Goal.Position.X = obj.goalPose.x;
+            msg.Goal.Position.Y = obj.goalPose.y;
+            temp = eul2quat([obj.goalPose.theta, 0, 0]);
             msg.Goal.Orientation.W = temp(1);
             msg.Goal.Orientation.X = temp(2);
             msg.Goal.Orientation.Y = temp(3);
@@ -429,50 +567,47 @@ classdef TebPlanner < handle
 
             if (~isempty(obj.initialPlan))
                 % fill initial plan
-                pose(1,length(obj.initialPlan)) = rosmessage...
-                         ('geometry_msgs/Pose');
-
-                % fill the initial pose frame to odom
-                msg.InitialPlan.Header.FrameId = "odom";
-
                 for i = 1:length(obj.initialPlan)
-                    pose(i) = rosmessage('geometry_msgs/Pose');
-                    pose(i).Position.X = obj.initialPlan(i,1);
-                    pose(i).Position.Y = obj.initialPlan(i,2);
+                    pose_stamped = rosmessage('geometry_msgs/PoseStamped');
+                    % set frame id
+                    pose_stamped.Header.FrameId = 'odom';
+                    % set point
+                    pose_stamped.Pose.Position.X = obj.initialPlan(i).x;
+                    pose_stamped.Pose.Position.Y = obj.initialPlan(i).y;
+                    % set Orientation
+                    temp = eul2quat([obj.initialPlan(i).theta, 0, 0]);
+                    pose_stamped.Pose.Orientation.W = temp(1);
+                    pose_stamped.Pose.Orientation.X = temp(2);
+                    pose_stamped.Pose.Orientation.Y = temp(3);
+                    pose_stamped.Pose.Orientation.Z = temp(4);
 
-                    temp = eul2quat([obj.initialPlan(i,3), 0, 0]);
-                    pose(i).Orientation.W = temp(1);
-                    pose(i).Orientation.X = temp(2);
-                    pose(i).Orientation.Y = temp(3);
-                    pose(i).Orientation.Z = temp(4);
-
-                    msg.InitialPlan.Poses(end+1) = pose(1,i);
+                    msg.InitialPlan.Poses(i) = pose_stamped;
                 end
             end
 
 
 
-            % fill intelligent actor start velocity
-            msg.StartVel.Linear.X  = obj.startVelocity(1);
-            msg.StartVel.Linear.Y  = obj.startVelocity(2);
-            msg.StartVel.Angular.Z = obj.startVelocity(3);
+            % set start velocity
+            msg.StartVel.Linear.X  = obj.startVelocity.vx;
+            msg.StartVel.Linear.Y  = obj.startVelocity.vy;
+            msg.StartVel.Angular.Z = obj.startVelocity.omega;
 
             % Creating point or circular obstacles
-            for i = 1:length(obj.circularObstacle)
+            for i = 1:length(obj.circularObstacles)
                 obst = rosmessage('costmap_converter/ObstacleMsg');
-                obst.Radius = obj.circularObstacle(i).r;
+                obst.Radius = obj.circularObstacles(i).radius;
 
                 % add single point
                 point = rosmessage('geometry_msgs/Point32');
-                point.X = obj.circularObstacle(i).position(1,1);
-                point.Y = obj.circularObstacle(i).position(1,2);
+                point.X = obj.circularObstacles(i).x;
+                point.Y = obj.circularObstacles(i).y;
 
                 obst.Polygon.Points = point;
 
                 % add velocity
                 vel = rosmessage('geometry_msgs/TwistWithCovariance');
-                vel.Twist.Linear.X = obj.circularObstacle(i).velocity(1,1);
-                vel.Twist.Linear.Y = obj.circularObstacle(i).velocity(1,2);
+                vel.Twist.Linear.X = obj.circularObstacles(i).vx;
+                vel.Twist.Linear.Y = obj.circularObstacles(i).vy;
 
                 obst.Velocities = vel;
 
@@ -480,39 +615,20 @@ classdef TebPlanner < handle
                 msg.Obstacles.Obstacles(end + 1) = obst;
             end
 
-            % Creating critical corners
-            for i = 1:length(obj.criticalCorners)
-                obst = rosmessage('costmap_converter/ObstacleMsg');
-
-                % add single point
-                point = rosmessage('geometry_msgs/Point32');
-                point.X = obj.criticalCorners(i).position(1,1);
-                point.Y = obj.criticalCorners(i).position(1,2);
-
-                obst.Polygon.Points = point;
-
-                % add velocity
-                vel = rosmessage('geometry_msgs/TwistWithCovariance');
-                obst.Velocities = vel;
-
-                % add obst to message
-                msg.CriticalCorners.Obstacles(end + 1) = obst;
-            end
-
             % Creating polyline obstacles
-            for i = 1:length(obj.polylineObstacle)
+            for i = 1:length(obj.polylineObstacles)
                 % add dimensions
-                for j = 1: size(obj.polylineObstacle(i).positions,1) - 1
+                for j = 1:length(obj.polylineObstacles(i).points) - 1
                     polyl_obst = rosmessage('costmap_converter/ObstacleMsg');
                     % point 1
                     point1 = rosmessage('geometry_msgs/Point32');
-                    point1.X = obj.polylineObstacle(i).positions(j,1);
-                    point1.Y = obj.polylineObstacle(i).positions(j,2);
+                    point1.X = obj.polylineObstacles(i).points(j).x;
+                    point1.Y = obj.polylineObstacles(i).points(j).y;
 
                     % point 2
                     point2 = rosmessage('geometry_msgs/Point32');
-                    point2.X = obj.polylineObstacle(i).positions(j+1,1);
-                    point2.Y = obj.polylineObstacle(i).positions(j+1,2);
+                    point2.X = obj.polylineObstacles(i).points(j+1).x;
+                    point2.Y = obj.polylineObstacles(i).points(j+1).y;
 
                     % add points
                     polyl_obst.Polygon.Points    = point1;
@@ -525,37 +641,53 @@ classdef TebPlanner < handle
 
 
             % Creating polygon obstacles
-            for i = 1:length(obj.polygonObstacle)
+            for i = 1:length(obj.polygonObstacles)
                 polygon_obst = rosmessage('costmap_converter/ObstacleMsg');
 
                 % add dimensions
-                for j = 1: size(obj.polygonObstacle(i).positions,1)
-                 point(j) = rosmessage('geometry_msgs/Point32');
+                for j = 1:length(obj.polygonObstacles(i).points)
+                    point(j) = rosmessage('geometry_msgs/Point32');
 
-                 point(j).X = obj.polygonObstacle(i).positions(j,1);
-                 point(j).Y = obj.polygonObstacle(i).positions(j,2);
-                 polygon_obst.Polygon.Points(j) = point(j);
+                    point(j).X = obj.polygonObstacles(i).points(j).x;
+                    point(j).Y = obj.polygonObstacles(i).points(j).y;
+                    polygon_obst.Polygon.Points(j) = point(j);
 
                 end
 
                 % add velocity
                 vel = rosmessage('geometry_msgs/TwistWithCovariance');
-                vel.Twist.Linear.X = obj.polygonObstacle(i).velocity(1,1);
-                vel.Twist.Linear.Y = obj.polygonObstacle(i).velocity(1,2);
+                vel.Twist.Linear.X = obj.polygonObstacles(i).vx;
+                vel.Twist.Linear.Y = obj.polygonObstacles(i).vy;
 
                 polygon_obst.Velocities = vel;
                 msg.Obstacles.Obstacles(end + 1) = polygon_obst;
             end
 
             % Add waypoint
-            for i = 1:length(obj.waypoint)
-                point   = rosmessage('geometry_msgs/Point');
-                point.X = obj.waypoint(i).x;
-                point.Y = obj.waypoint(i).y;
-
+            for i = 1:length(obj.waypoints)
                 pose_stamped = rosmessage('geometry_msgs/PoseStamped');
-                pose_stamped.Pose.Position  = point;
+                pose_stamped.Pose.Position.X  = obj.waypoints(i).x;
+                pose_stamped.Pose.Position.Y  = obj.waypoints(i).y;
                 msg.Waypoints.Poses(end + 1)= pose_stamped;
+            end
+
+            % Creating critical corners
+            for i = 1:length(obj.criticalCorners)
+                obst = rosmessage('costmap_converter/ObstacleMsg');
+
+                % add single point
+                point = rosmessage('geometry_msgs/Point32');
+                point.X = obj.criticalCorners(i).x;
+                point.Y = obj.criticalCorners(i).y;
+
+                obst.Polygon.Points = point;
+
+                % add velocity
+                vel = rosmessage('geometry_msgs/TwistWithCovariance');
+                obst.Velocities = vel;
+
+                % add obst to message
+                msg.CriticalCorners.Obstacles(end + 1) = obst;
             end
 
 
@@ -667,6 +799,29 @@ classdef TebPlanner < handle
             out = client;
         end
 
+        function out = getRosReplanService(timeout)
+            persistent replan_client;
+
+            if (isempty(replan_client))
+                service_name='/teb_planner_node_pa/replan';
+
+                rosnode = TebPlanner.getRosNode();
+
+                fprintf(['Creating ROS-service client for "', ...
+                  service_name, '"\n']);
+
+                if (nargin < 1)
+                  replan_client = robotics.ros.ServiceClient(rosnode, ...
+                    service_name);
+                else
+                  replan_client = robotics.ros.ServiceClient(rosnode, ...
+                    service_name, 'Timeout', timeout);
+                end
+            end
+
+            out = replan_client;
+        end
+
         function out = getRosPublisher()
             persistent pub;
 
@@ -701,6 +856,24 @@ classdef TebPlanner < handle
             end
 
             out = sub;
+        end
+
+        function out = getRosReplanPublisher()
+            persistent pub;
+
+            if (isempty(pub))
+                topic_name='/teb_planner_node_pa/request_replan';
+                topic_type='std_msgs/Empty';
+
+                rosnode = TebPlanner.getRosNode();
+
+                fprintf(['Creating ROS-publisher for "', topic_name, ...
+                  '"\n']);
+                pub = robotics.ros.Publisher(rosnode, ...
+                  topic_name, topic_type);
+            end
+
+            out = pub;
         end
 
     end

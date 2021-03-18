@@ -89,7 +89,6 @@
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseArray.h>
 #include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -113,6 +112,7 @@ boost::shared_ptr <dynamic_reconfigure::Server
   <teb_local_planner::TebLocalPlannerReconfigureConfig> > dynamic_recfg;
 
 ros::ServiceServer srv_plan;
+ros::ServiceServer srv_replan;
 
 ros::Subscriber sub_reset;
 ros::Subscriber sub_clear;
@@ -120,6 +120,7 @@ ros::Subscriber sub_plan;
 ros::Subscriber sub_publish;
 
 ros::Subscriber sub_request;
+ros::Subscriber sub_request_replan;
 ros::Publisher  pub_respond;
 
 ros::Subscriber sub_setStart2d;
@@ -157,6 +158,10 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
   teb_planner_pa_msgs::Plan::Response &res);
 void CB_request(const teb_planner_pa_msgs::RequestConstPtr& msg);
 
+bool service_replan(teb_planner_pa_msgs::Plan::Request  &req,
+  teb_planner_pa_msgs::Plan::Response &res);
+void CB_request_replan(const std_msgs::EmptyConstPtr& msg);
+
 void CB_reset(const std_msgs::EmptyConstPtr& msg);
 void CB_clear(const std_msgs::EmptyConstPtr& msg);
 void CB_plan(const std_msgs::EmptyConstPtr& msg);
@@ -167,7 +172,7 @@ void CB_setGoal2d(const geometry_msgs::Pose2DConstPtr& pose_msg);
 void CB_setStart(const geometry_msgs::PoseConstPtr& pose_msg);
 void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg);
 
-void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg);
+void CB_setInitialPlan(const nav_msgs::Path::ConstPtr& init_plan_msg);
 void CB_clearInitialPlan(const std_msgs::EmptyConstPtr& msg);
 void CB_setRobotStartVelocity(const geometry_msgs::Twist& vel_start);
 
@@ -214,6 +219,7 @@ int main(int argc, char** argv)
 
     // setup callbacks for optimisation
     srv_plan    = n.advertiseService("plan", service_plan);
+    srv_replan  = n.advertiseService("replan", service_replan);
 
     sub_reset   = n.subscribe("reset", 1, CB_reset);
     sub_clear   = n.subscribe("clear", 1, CB_clear);
@@ -221,8 +227,9 @@ int main(int argc, char** argv)
     sub_publish = n.subscribe("publish", 1, CB_publish);
 
     // setup callbacks for service-like call
-    sub_request = n.subscribe("request", 5, CB_request);
-    pub_respond = n.advertise<teb_planner_pa_msgs::Respond>(
+    sub_request        = n.subscribe("request", 5, CB_request);
+    sub_request_replan = n.subscribe("request_replan", 5, CB_request_replan);
+    pub_respond        = n.advertise<teb_planner_pa_msgs::Respond>(
       "respond", 1);
 
 
@@ -292,8 +299,8 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
       new geometry_msgs::Pose(req.request.start)));
     CB_setGoal(geometry_msgs::PoseConstPtr(
       new geometry_msgs::Pose(req.request.goal )));
-    CB_setInitialPlan(geometry_msgs::PoseArray::ConstPtr(
-      new geometry_msgs::PoseArray(req.request.initial_plan)));
+    CB_setInitialPlan(nav_msgs::Path::ConstPtr(
+      new nav_msgs::Path(req.request.initial_plan)));
 
     CB_setWaypoints(nav_msgs::PathConstPtr(
       new nav_msgs::Path(req.request.waypoints)));
@@ -342,6 +349,44 @@ bool service_plan(teb_planner_pa_msgs::Plan::Request  &req,
     return true;
 }
 
+// replan without changing previous input parameters
+bool service_replan(teb_planner_pa_msgs::Plan::Request &req,
+  teb_planner_pa_msgs::Plan::Response &res)
+{
+    CB_plan(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
+
+    teb_local_planner::TebOptimalPlannerPtr planner_as_optimal =
+      boost::dynamic_pointer_cast<teb_local_planner::TebOptimalPlanner>
+      (planner);
+    teb_local_planner::HomotopyClassPlannerPtr planner_as_homotopy =
+      boost::dynamic_pointer_cast<teb_local_planner::HomotopyClassPlanner>
+      (planner);
+
+    if (planner_as_homotopy)
+    {
+        // homotopy class only
+        res.respond.tebs     = visual->msgTebContainer(
+          planner_as_homotopy->getTrajectoryContainer());
+
+        // use best teb
+        planner_as_optimal = (planner_as_homotopy->bestTeb());
+    }
+    if (planner_as_optimal)
+    {
+        res.respond.path  = visual->msgLocalPlan(planner_as_optimal->teb());
+        res.respond.poses = visual->msgLocalPoses(planner_as_optimal->teb());
+        res.respond.feedback = visual->msgFeedbackMessage(
+          *planner_as_optimal, obst_vector);
+    }
+
+    res.respond.waypoints       = visual->msgViaPoints(waypoints);
+    res.respond.obstacles_point = visual->msgObstaclesPoints(obst_vector);
+    res.respond.obstacles_line  = visual->msgObstaclesLines(obst_vector);
+    res.respond.obstacles_poly  = visual->msgObstaclesPoly(obst_vector);
+
+    return true;
+}
+
 // service-like topics
 void CB_request(const teb_planner_pa_msgs::RequestConstPtr& msg)
 {
@@ -351,6 +396,17 @@ void CB_request(const teb_planner_pa_msgs::RequestConstPtr& msg)
     req.request = *msg;
 
     if (service_plan(req, res))
+    {
+        pub_respond.publish(res.respond);
+    }
+}
+
+void CB_request_replan(const std_msgs::EmptyConstPtr& msg)
+{
+    teb_planner_pa_msgs::Plan::Request req;
+    teb_planner_pa_msgs::Plan::Response res;
+
+    if (service_replan(req, res))
     {
         pub_respond.publish(res.respond);
     }
@@ -401,7 +457,7 @@ void CB_plan(const std_msgs::EmptyConstPtr& msg)
     }
     else
     {
-        ROS_INFO("Planning using initial plan :)");
+        ROS_INFO("Planning using initial plan (ignoring start & goal pose)");
         planner->plan(init_plan, &start_vel,
           config.goal_tolerance.free_goal_vel);
     }
@@ -416,7 +472,7 @@ void CB_publish(const std_msgs::EmptyConstPtr& msg)
     visual->publishViaPoints(waypoints);
     if (init_plan.size() != 0)
     {
-        visual->publishGlobalPlan(init_plan);
+        visual->publishInitialPlan(init_plan);
     }
 }
 
@@ -458,49 +514,21 @@ void CB_setGoal(const geometry_msgs::PoseConstPtr& pose_msg)
     ROS_INFO_STREAM("Goal pose set (" << goal_pose << ").");
 }
 
-void CB_setInitialPlan(const geometry_msgs::PoseArray::ConstPtr& init_plan_msg)
+void CB_setInitialPlan(const nav_msgs::Path::ConstPtr& init_plan_msg)
 {
-    double dist;
-    double timestamp{0.0};
 
-    // Clear initial plan
-    CB_clearInitialPlan(std_msgs::EmptyConstPtr(new std_msgs::Empty()));
+    // clear initial plan
+	init_plan.clear();
 
-    // Add the poses
-    for (size_t i = 0; i < (init_plan_msg->poses.size()); i++)
-    {
-        init_plan.push_back(geometry_msgs::PoseStamped());
-        init_plan[i].pose = init_plan_msg->poses[i];
-    }
+    // copy content
+    init_plan = init_plan_msg->poses;
 
-    if (init_plan_msg->poses.size() != 0)
-    {
-        // Add the timestamps
+    ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
 
-        // Set sec to zero through msg
-        init_plan[0].header.stamp.sec = init_plan_msg->header.stamp.sec;
-
-        // Set frame_id to odom through msg
-        init_plan[0].header.frame_id = init_plan_msg->header.frame_id;
-
-        for (size_t i = 1; i < (init_plan.size()); i++)
-        {
-            std::complex<double> posediff((init_plan[i].pose.position.x -
-              init_plan[i-1].pose.position.x),
-              (init_plan[i].pose.position.y - init_plan[i-1].pose.position.y));
-
-            dist = std::sqrt(std::norm(posediff));
-            timestamp += (dist / config.robot.max_vel_x);
-            init_plan[i].header.stamp.sec = timestamp;
-        }
-
-        // update via-points container
-        if (checkGlobalWaypoints())
-            updateWaypointsContainer(init_plan,
-              config.trajectory.global_plan_viapoint_sep);
-
-        ROS_INFO_STREAM("Initial plan set (" << init_plan.size() << "x).");
-    }
+    // update via-points container
+    if (checkGlobalWaypoints())
+        updateWaypointsContainer(init_plan,
+          config.trajectory.global_plan_viapoint_sep);
 }
 
 void CB_clearInitialPlan(const std_msgs::EmptyConstPtr& msg)
@@ -726,7 +754,6 @@ void CB_addWaypoints(const nav_msgs::Path::ConstPtr& waypoints_msg)
             ROS_WARN("Note: via-points are deactivated, "
               "since 'weight_via_point' <= 0");
     }
-
 }
 
 void updateWaypointsContainer(const std::vector<geometry_msgs::PoseStamped>&

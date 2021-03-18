@@ -46,6 +46,8 @@ clearXxxxObstacle    | ---        | Dedicated clear functions for each of the ob
 clearWaypoint        | ---        | Deletes all waypoints
 plan                 | ---        | Requests for Teb Plan using a service call by sending all the plan details. Stores Response in one of the Class properties
 plan_using_topics    | ---        | Same as plan but based on the topics instead of a service call (for testing)
+replan               | ---        | Replanning using the previous plan details. Stores Response in one of the Class properties
+replan_using_topics  | ---        | Same as replan but based on topics instead of a service call
 getResultPoses       | ---        | Returns the planned trajectory consisting of poses
 getResultFeedback    | ---        | Returns the planned trajectory consisting of poses and timestamps
 
@@ -95,7 +97,7 @@ the "**before**" token in front of the four JAR file paths:
     <before>
     MSGS_PATH/matlab_gen/jar/costmap_converter-0.0.11.jar
     MSGS_PATH/matlab_gen/jar/teb_local_planner-0.6.14.jar
-    MSGS_PATH/matlab_gen/jar/teb_planner_pa_msgs-1.0.0.jar
+    MSGS_PATH/matlab_gen/jar/teb_planner_pa_msgs-1.1.0.jar
     MSGS_PATH/matlab_gen/jar/visualization_msgs-1.12.7.jar
 ~~~~~
 

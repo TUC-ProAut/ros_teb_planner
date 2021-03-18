@@ -86,7 +86,34 @@ TebVisualizationPa::TebVisualizationPa() : TebVisualization()
 
 TebVisualizationPa::TebVisualizationPa(ros::NodeHandle& nh, const TebConfig& cfg) : TebVisualization(nh, cfg)
 {
+    initializePa(nh, cfg);
 }
+
+void TebVisualizationPa::initialize(ros::NodeHandle& nh, const TebConfig& cfg)
+{
+    if (initialized_)
+    {
+        ROS_WARN("TebVisualizationPA already initialized. Reinitalizing...");
+        initialized_ = false;
+    }
+
+    // call base class function
+    TebVisualization::initialize(nh, cfg);
+
+    // call local extension
+    initializePa(nh, cfg);
+}
+
+void TebVisualizationPa::initializePa(ros::NodeHandle& nh, const TebConfig& cfg)
+{
+    // register topics
+    initial_plan_pub_ = nh.advertise<nav_msgs::Path>("initial_plan", 1);
+
+    // unregister topics
+    global_plan_pub_.shutdown();
+}
+
+
 
 
 nav_msgs::Path TebVisualizationPa::msgLocalPlan(const TimedElasticBand& teb) const
@@ -474,6 +501,14 @@ const ObstContainer& obstacles)
     }
 
     return msg;
+}
+
+
+
+void TebVisualizationPa::publishInitialPlan(const std::vector<geometry_msgs::PoseStamped>& initial_plan) const
+{
+    if ( printErrorWhenNotInitialized() ) return;
+    base_local_planner::publishPlan(initial_plan, initial_plan_pub_);
 }
 
 

@@ -122,6 +122,17 @@ public:
      */
     TebVisualizationPa(ros::NodeHandle& nh, const TebConfig& cfg);
 
+    /**
+     * @brief Initializes the class and registers topics (calls baseclass).
+     *
+     * Call this function if only the default constructor has been called before.
+     * @param nh local ros::NodeHandle
+     * @param cfg const reference to the TebConfig class for parameters
+     */
+    void initialize(ros::NodeHandle& nh, const TebConfig& cfg);
+
+
+
     /** @name Convert to ros messages */
     //@{
 
@@ -198,7 +209,25 @@ public:
      */
     FeedbackMsg msgFeedbackMessage(const TebOptimalPlanner& teb_planner, const ObstContainer& obstacles);
 
+    /**
+     * @brief Publish a given initial plan to the ros topic \e ../../initial_plan
+     * @param initial_plan Pose array describing the initial plan
+     */
+    void publishInitialPlan(const std::vector<geometry_msgs::PoseStamped>& initial_plan) const;
+
     //@}
+
+protected:
+    /**
+     * @brief Initializes the PA class and registers its topics only.
+     *
+     * Call this function never directly.
+     * @param nh local ros::NodeHandle
+     * @param cfg const reference to the TebConfig class for parameters
+     */
+    void initializePa(ros::NodeHandle& nh, const TebConfig& cfg);
+
+    ros::Publisher initial_plan_pub_; //!< Publisher for the initial plan
 };
 
 //! Abbrev. for shared instances of the TebVisualization

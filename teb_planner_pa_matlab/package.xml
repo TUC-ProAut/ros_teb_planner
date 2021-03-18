@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>teb_planner_pa_matlab</name>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <description>
         This package contains the source code and the messages for the matlab
         wrapper.
