@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(teb_planner_pa_msgs)
 
 set(CMAKE_BUILD_TYPE Release)
