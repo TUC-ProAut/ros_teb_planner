@@ -9,16 +9,16 @@ This repository contains three packages:
 ## teb_planner_pa
 
 The [teb_planner_pa](teb_planner_pa) package is a wrapper
-package designed to interact with the teb_local_planner ROS Package in a 
-simplified manner. 
+package designed to interact with the teb_local_planner ROS Package in a
+simplified manner.
 
 ## Other Packages
 
-The [teb_planner_pa_matlab](teb_planner_pa_msgs) includes an 
+The [teb_planner_pa_matlab](teb_planner_pa_matlab) includes an
 easy-to-use matlab class and the ros custom messages for matlab.
 
-The [teb_planner_pa_msgs](teb_planner_pa_msgs) only contains the 
-teb_planner_pa custom messages, which are needed for communication with one of 
+The [teb_planner_pa_msgs](teb_planner_pa_msgs) only contains the
+teb_planner_pa custom messages, which are needed for communication with one of
 our teb_planner_pa nodes.
 
 ## Links
