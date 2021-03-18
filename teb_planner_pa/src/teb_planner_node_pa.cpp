@@ -47,7 +47,7 @@
 *                                                                             *
 * New BSD License                                                             *
 *                                                                             *
-* Copyright (c) 2019-2020 TU Chemnitz                                         *
+* Copyright (c) 2019-2021 TU Chemnitz                                         *
 * Copyright (c) 2016-2019 TU Dortmund                                         *
 * All rights reserved.                                                        *
 *                                                                             *
