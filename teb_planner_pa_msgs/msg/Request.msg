@@ -14,6 +14,9 @@ costmap_converter/ObstacleArrayMsg obstacles
 # note: waypoints will usually be ignored, if initial_plan is set
 nav_msgs/Path waypoints
 
+# critical corners
+costmap_converter/ObstacleArrayMsg critical_corners
+
 # initial plan
 # note: always overrides start & goal pose, if not empty
 # note: usually overrides waypoints, if not empty
