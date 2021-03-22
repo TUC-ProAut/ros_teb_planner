@@ -90,7 +90,7 @@ tebplan.addCircularObstacle([1,-0.5]);
 %              (dynamic reconfigure: Optimization/weight_viapoint)
 
 %% plan using services
-tebplan.plan();
+tebplan.plan_using_topics();
 
 %% publish the obstacles and robot footprint continuously
 % get internal rosnode
@@ -115,7 +115,7 @@ start(t);
 
 %% further testing (optional)
 % a) do continuous replanning
-%t.TimerFcn = 'tebplan.replan()';
+%t.TimerFcn = 'tebplan.replan_using_topics();';
 
 % b) minimize distance to boundaries
 %    (dynamic reconfigure: Obstacles/min_obstacle_dist)
