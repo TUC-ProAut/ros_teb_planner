@@ -69,8 +69,8 @@ tebplan.setInitialPlan(poses);
 
 
 %% create enviroment
-tebplan.clearPolygonObstacle();
-tebplan.clearPolylineObstacle();
+tebplan.clearPolygonObstacles();
+tebplan.clearPolylineObstacles();
 
 % one vertical shelf
 base_obstacle=[ 0  , 0  ;   3.0, 0  ;   3.0, 8.0;   0  , 8.0];
@@ -88,7 +88,7 @@ clear dx dy base_obstacle;
 
 %% add one critical corner
 tebplan.clearCriticalCorners();
-tebplan.addCriticalCorner([ 0  , 0  ]);
+tebplan.addCriticalCorner( 0  , 0  );
 
 
 %% plan
@@ -121,12 +121,12 @@ start(t_pub);
 t_plan = timer;
 t_plan.Period        = 10;
 t_plan.ExecutionMode = 'fixedRate';
-t_plan.TimerFcn      = 'tebplan.plan_using_topics()';
+t_plan.TimerFcn      = 'tebplan.plan_using_topics();';
 start(t_plan);
 
 % b) do continuous replanning
 t_replan = timer;
 t_replan.Period        = 1;
 t_replan.ExecutionMode = 'fixedRate';
-t_replan.TimerFcn      = 'tebplan.replan_using_topics()';
+t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
 %start(t_replan);

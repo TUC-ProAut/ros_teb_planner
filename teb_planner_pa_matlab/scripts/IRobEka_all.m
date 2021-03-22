@@ -70,7 +70,7 @@ IRobEka_one_CriticalCorner()
 clear
 fprintf("one critical corner - without outer wall")
 IRobEka_one_CriticalCorner()
-tebplan.clearPolylineObstacle()
+tebplan.clearPolylineObstacles()
 
 
 %% without critical corner & without outer wall
@@ -78,7 +78,7 @@ clear
 fprintf("one critical corner - without critical corner and without outer wall")
 IRobEka_one_CriticalCorner()
 tebplan.clearCriticalCorners()
-tebplan.clearPolylineObstacle()
+tebplan.clearPolylineObstacles()
 
 
 

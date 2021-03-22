@@ -441,7 +441,7 @@ classdef TebPlanner < handle
                 obstacle.points(i).y = points(i,2);
             end
 
-            if (isempty(obj.polygonObstacle))
+            if (isempty(obj.polygonObstacles))
                 obj.polygonObstacles = obstacle;
             else
                 obj.polygonObstacles(end + 1) = obstacle;
