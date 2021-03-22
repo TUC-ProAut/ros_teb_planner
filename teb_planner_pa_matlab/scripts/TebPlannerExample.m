@@ -56,6 +56,11 @@
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
 
+% temporary bugfix in matlab:
+%   create a publisher on a default-topic with default message
+%   see also: https://de.mathworks.com/matlabcentral/answers/734013#comment_1332042
+dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
+
 %% set initial plan for the robot
 % first segment: straight line along x-axis
 poses = zeros(10,3);
