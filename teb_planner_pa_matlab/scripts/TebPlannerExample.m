@@ -64,8 +64,8 @@ dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
 %% set initial plan for the robot
 % first segment: straight line along x-axis
 poses = zeros(10,3);
-poses(1:7 ,1) = -3:3; poses(1:7 ,2) = -0.5; poses(1:6 ,3) =  0;
-                                            poses(7   ,3) =  pi/4;
+poses(1:7 ,1) = -3:3; poses(1:7 ,2) = -0.25; poses(1:6 ,3) =  0;
+                                             poses(7   ,3) =  pi/4;
 % second segment: straight line along y-axis
 poses(8:10,1) =    3; poses(8:10,2) =  1:3; poses(8:10,3) =  pi/2;
 % set initial plan
