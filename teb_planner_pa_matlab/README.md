@@ -13,6 +13,7 @@ This folder contains two primary folders:
 * [scripts](scripts)
     * startup.m
     * TebPlanner.m
+    * TebPlannerExample.m
 
 'msgs' folder contains all the required custom messages and a matlab_gen folder.
 The matlab_gen folder is a Matlab generated folder containing the custom messages
@@ -32,24 +33,24 @@ Provision of creating a teb plan either through Services or Topics is made.
 
 **Class Methods:**
 
-Method               | Inputs      | Description
----------------------|-------------|----------------------------------------------------------
-setStartPose         | x, y, theta | Robot's start position(x,y) and direction(theta)
-setGoalPose          | x, y, theta | Robot's goal  position(x,y) and direction(theta)
-setInitialPlan       | poses       | Initial or Global plan poses; minimum 6 poses [x1,y1,theta1; ...x6,y6,theta6]
-setStartVelocity     | vx, vy, omega | Robot's linear (vx, vy) and angular(omega) start velocity
+Method               | Inputs                     | Description
+---------------------|----------------------------|----------------------------------------------------------
+setStartPose         | x, y, theta                | Robot's start position(x,y) and direction(theta)
+setGoalPose          | x, y, theta                | Robot's goal  position(x,y) and direction(theta)
+setInitialPlan       | poses                      | Initial or Global plan poses [x1,y1,theta1; x2,y2,theta2; ...]
+setStartVelocity     | vx, vy, omega              | Robot's linear (vx, vy) and angular(omega) start velocity
 addCircularObstacle  | position, velocity, radius | position is a vector (x,y); velocity is a vector (vx, vy); radius is a scalar
-addPolylineObstacle  | positions, velocity | positions - minimum two positions [x1,y1; x2,y2] to form a polyline obstacle; velocity - [vx, vy] components
-addPolygonObstacle   | positions, velocity | positions - minimum three positions [x1,y1; x2,y2; x3,y3] to form a polygon obstacle; velocity - [vx, vy] components
-addWaypoint          | x, y       | Waypoint Position
-clearXxxxObstacle    | ---        | Dedicated clear functions for each of the obstacle types
-clearWaypoint        | ---        | Deletes all waypoints
-plan                 | ---        | Requests for Teb Plan using a service call by sending all the plan details. Stores Response in one of the Class properties
-plan_using_topics    | ---        | Same as plan but based on the topics instead of a service call (for testing)
-replan               | ---        | Replanning using the previous plan details. Stores Response in one of the Class properties
-replan_using_topics  | ---        | Same as replan but based on topics instead of a service call
-getResultPoses       | ---        | Returns the planned trajectory consisting of poses
-getResultFeedback    | ---        | Returns the planned trajectory consisting of poses and timestamps
+addPolylineObstacle  | positions, velocity        | positions - minimum two   positions [x1,y1; x2,y2] to form a polyline obstacle; velocity - [vx, vy] components
+addPolygonObstacle   | positions, velocity        | positions - minimum three positions [x1,y1; x2,y2; x3,y3] to form a polygon obstacle; velocity - [vx, vy] components
+addWaypoint          | x, y                       | Waypoint Position
+clearXxxxObstacle    | ---                        | Dedicated clear functions for each of the obstacle types
+clearWaypoint        | ---                        | Deletes all waypoints
+plan                 | ---                        | Requests for Teb Plan using a service call by sending all the plan details. Stores Response in one of the Class properties
+plan_using_topics    | ---                        | Same as plan but based on the topics instead of a service call (for testing)
+replan               | ---                        | Replanning using the previous plan details. Stores Response in one of the Class properties
+replan_using_topics  | ---                        | Same as replan but based on topics instead of a service call
+getResultPoses       | ---                        | Returns the planned trajectory consisting of poses
+getResultFeedback    | ---                        | Returns the planned trajectory consisting of poses and timestamps
 
 
 ## Matlab
