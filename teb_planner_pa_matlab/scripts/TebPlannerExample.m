@@ -56,11 +56,16 @@
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
 
+% temporary bugfix in matlab:
+%   create a publisher on a default-topic with default message
+%   see also: https://de.mathworks.com/matlabcentral/answers/734013#comment_1332042
+dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
+
 %% set initial plan for the robot
 % first segment: straight line along x-axis
 poses = zeros(10,3);
-poses(1:7 ,1) = -3:3; poses(1:7 ,2) = -0.5; poses(1:6 ,3) =  0;
-                                            poses(7   ,3) =  pi/4;
+poses(1:7 ,1) = -3:3; poses(1:7 ,2) = -0.25; poses(1:6 ,3) =  0;
+                                             poses(7   ,3) =  pi/4;
 % second segment: straight line along y-axis
 poses(8:10,1) =    3; poses(8:10,2) =  1:3; poses(8:10,3) =  pi/2;
 % set initial plan
@@ -75,7 +80,7 @@ tebplan.addPolylineObstacle([-3, 1,0; 2, 1,0; 2,3,0]);
 tebplan.addPolylineObstacle([-3,-1,0; 4,-1,0; 4,3,0]);
 
 %% add pedestrian as point obstacle
-tebplan.addCircularObstacle([1,-0.5])
+tebplan.addCircularObstacle([1,-0.5]);
 
 %% add waypoint (optional)
 %tebplan.addWaypoint(-1,2);
@@ -85,7 +90,7 @@ tebplan.addCircularObstacle([1,-0.5])
 %              (dynamic reconfigure: Optimization/weight_viapoint)
 
 %% plan using services
-tebplan.plan();
+tebplan.plan_using_topics();
 
 %% publish the obstacles and robot footprint continuously
 % get internal rosnode
@@ -110,7 +115,7 @@ start(t);
 
 %% further testing (optional)
 % a) do continuous replanning
-%t.TimerFcn = 'tebplan.replan()';
+%t.TimerFcn = 'tebplan.replan_using_topics();';
 
 % b) minimize distance to boundaries
 %    (dynamic reconfigure: Obstacles/min_obstacle_dist)
