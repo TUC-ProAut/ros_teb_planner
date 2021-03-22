@@ -55,9 +55,17 @@ getResultFeedback    | ---                        | Returns the planned trajecto
 
 ## Matlab
 
+If you are running **Matlab 2020b** or newer - stay here.
+Otherwise have a look [here](README_old.md).
+
 Usage instructions based on
-  https://de.mathworks.com/matlabcentral/answers/283695 \
-"Updating existing custom message types with rosgenmsg"
+  https://de.mathworks.com/help/ros/gs/ros-system-requirements.html and
+  https://de.mathworks.com/matlabcentral/answers/623103
+
+Tested on:
+
+* Matlab 2020b on Ubuntu 20.04 with ros noetic \
+  (also prebuild messages are stored in matlab_gen)
 
 ### 1. Download package
 Download this matlab package, which is part of the ProAut TEB-Planner
@@ -76,43 +84,37 @@ repository.
 In the remainder of the instructions, it is assumed that the path
 "~/catkin_ws/src/ros_teb_planner" is "REPO_PATH/".
 
-### 2. Run rosgenmsg
-Within matlab: run rosgenmsg on the folder containing the custom
-message definitions.
+### 2. Fixing cmake-dependencies
+This step is only necessary, if you want to rebuild the messages.
+**Before** starting matlab check and update LD_PRELOAD.
+
+~~~~~
+    $ echo "LD_PRELOAD=\"$LD_PRELOAD\""
+    $ export LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+~~~~~
+
+If LD_PRELOAD was not empty before, consider adding the previous paths: \
+  `$ export LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libstdc++.so.6:$LD_PRELOAD"`
+
+### 3. Setup Python
+**After** starting matlab, check current python version.
+If it is not the deprecated Python 2.7, then change the python enviroment.
+
+~~~~~
+    >> pyenv()
+    >> pyenv('Version', 'python2.7')
+~~~~~
+
+### 4. Run rosgenmsg
+Within Matlab, run rosgenmsg on the folder containing the custom message
+definitions.
 
 ~~~~~
     >> rosgenmsg('REPO_PATH/teb_planner_pa_matlab/msgs/')
 ~~~~~
 
-In order to keep this instruction simple "MSGS_PATH" refers to
-"REPO_PATH/teb_planner_pa_matlab/msgs/".
-
-### 3. Edit the javaclasspath.txt
-Follow the instructions to edit the javaclasspath.txt file.
-
-In addition to the four JAR file paths, you also need to tell
-Matlab to use these JAR files instead of the builtin ones. Add
-the "**before**" token in front of the four JAR file paths:
-
-~~~~~
-    <before>
-    MSGS_PATH/matlab_gen/jar/costmap_converter-0.0.11.jar
-    MSGS_PATH/matlab_gen/jar/teb_local_planner-0.6.14.jar
-    MSGS_PATH/matlab_gen/jar/teb_planner_pa_msgs-1.1.0.jar
-    MSGS_PATH/matlab_gen/jar/visualization_msgs-1.12.7.jar
-~~~~~
-
-### 4. Restart Matlab
+### 5. Restart Matlab
 The caption says it all.
-
-### 5. Regenerate files
-Delete the previously generated Matlab files and run
-rosgenmsg again. Now, it should pick up the new definitions:
-
-~~~~~
-    >> rmdir('MSGS_PATH/matlab_gen/', 's')
-    >> rosgenmsg('MSGS_PATH')
-~~~~~
 
 ### 6. done
 You should now be able to use these new message definitions.
