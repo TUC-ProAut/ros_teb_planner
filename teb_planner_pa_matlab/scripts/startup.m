@@ -56,33 +56,61 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-fprintf('executing startup script for ros teb-planner\n');
+% print info
+fprintf('executing startup script for teb-planner ros wrapper\n');
 
-local_matlab_path = [fileparts(fileparts(mfilename('fullpath'))), '/'];
-messages_gen_path = [local_matlab_path, 'msgs/'];
-messages_load_path = [messages_gen_path, 'matlab_gen/msggen/'];
+% check if running on older matlab version (before 2020b)
+% see also
+%   https://de.mathworks.com/matlabcentral/answers/623103#answer_525023
+%   https://en.wikipedia.org/wiki/MATLAB#Release_history
+using_older_matlab = verLessThan('matlab', '9.9');
+
+
+% setup paths
+local_matlab_path  = fileparts(fileparts(mfilename('fullpath')));
+messages_gen_path  = fullfile(local_matlab_path, 'msgs');
+if (using_older_matlab)
+    messages_load_path = fullfile(messages_gen_path, 'matlab_gen', 'msggen');
+else
+    messages_load_path = fullfile(messages_gen_path, ...
+      'matlab_msg_gen_ros1', 'glnxa64', 'install', 'm');
+end
+
+% check python version
+if (~using_older_matlab && (pyenv().Version ~= "2.7"))
+    fprintf('    We are working with ros1 (kinetic, melodic & noetic).\n');
+    fprintf('    Therefore, you need to use python 2.7\n');
+    fprintf('      >> pyenv(''Version'', ''python2.7'')\n');
+end
 
 % check if messages are build
+checked_msgs = [];
 if (exist(messages_load_path, 'dir'))
     % load messages
+    fprintf('    Loading self build messages\n');
     addpath(messages_load_path);
-else
-    fprintf('    Can''t load teb_planner_pa messages :-(\n');
-    fprintf('    Did you create the custom messages ?\n');
-    fprintf(['      >> rosgenmsg(''', messages_gen_path, ''')\n']);
-    warning(['Steps mentioned in teb_planner_pa_matlab/Readme.md file ',...
-             'might be missed or not correctly followed...']);
 
-    return
-end
-clear local_matlab_path  messages_gen_path messages_load_path;
-
-% check if messages are loaded (including java-class)
-temp = rosmsg_check();
-if (isempty(temp))
-    fprintf('    Can''t find rosmsgs for teb-planner :-(\n');
-    fprintf('    Did you update javaclasspath.txt ?\n');
+    % check if messages are loaded correctly
+    checked_msgs = rosmsg_check();
+    if (isempty(checked_msgs))
+        warning('Can''t find rosmsgs for teb_planner_pa :-(');
+        if (using_older_matlab)
+            fprintf('    Did you update javaclasspath.txt ?\n');
+        end
+    end
 else
-    fprintf('Startup check done.\n');
+    warning('Can''t load teb_planner_pa messages :-(');
+    fprintf(['    Did you create the custom messages ?\n', ...
+      '      >> rosgenmsg(''', messages_gen_path, ''')\n']);
 end
-clear temp;
+
+% check if errors occurred
+if (~isempty(checked_msgs))
+    fprintf('Startup check done :-)\n');
+else
+    fprintf(['    You might also want to read the ', ...
+      'teb_planner_pa_matlab/README.md file.\n']);
+end
+
+clear checked_msgs local_matlab_path  messages_gen_path ...
+  messages_load_path messages_load_link_path messages_load_default_path;
