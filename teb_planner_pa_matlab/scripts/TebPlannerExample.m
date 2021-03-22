@@ -75,7 +75,7 @@ tebplan.addPolylineObstacle([-3, 1,0; 2, 1,0; 2,3,0]);
 tebplan.addPolylineObstacle([-3,-1,0; 4,-1,0; 4,3,0]);
 
 %% add pedestrian as point obstacle
-tebplan.addCircularObstacle([1,-0.5])
+tebplan.addCircularObstacle([1,-0.5]);
 
 %% add waypoint (optional)
 %tebplan.addWaypoint(-1,2);
