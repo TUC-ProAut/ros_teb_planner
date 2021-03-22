@@ -134,4 +134,7 @@ t_replan = timer;
 t_replan.Period        = 1;
 t_replan.ExecutionMode = 'fixedRate';
 t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
-%start(t_replan);
+start(t_replan);
+
+%% stop all timers
+%stop(timerfind())
