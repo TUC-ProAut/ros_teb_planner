@@ -55,27 +55,27 @@
 
 %% without critical corner
 clear
-fprintf("one critical corner - without critical corner")
+fprintf("\none critical corner - without critical corner\n")
 IRobEka_one_CriticalCorner()
 tebplan.clearCriticalCorners()
 
 
 %% basic example (no critical corner)
 clear
-fprintf("one critical corner - basic example")
+fprintf("\none critical corner - basic example\n")
 IRobEka_one_CriticalCorner()
 
 
 %% without outer wall
 clear
-fprintf("one critical corner - without outer wall")
+fprintf("\none critical corner - without outer wall\n")
 IRobEka_one_CriticalCorner()
 tebplan.clearPolylineObstacles()
 
 
 %% without critical corner & without outer wall
 clear
-fprintf("one critical corner - without critical corner and without outer wall")
+fprintf("\none critical corner - without critical corner and without outer wall\n")
 IRobEka_one_CriticalCorner()
 tebplan.clearCriticalCorners()
 tebplan.clearPolylineObstacles()
@@ -86,12 +86,12 @@ tebplan.clearPolylineObstacles()
 
 %% without critical corner
 clear
-fprintf("two critical corners - without critical corner")
+fprintf("\ntwo critical corners - without critical corner\n")
 IRobEka_two_CriticalCorners()
 tebplan.clearCriticalCorners()
 
 
 %% basic example
 clear
-fprintf("two critical corners - basic example")
+fprintf("\ntwo critical corners - basic example\n")
 IRobEka_two_CriticalCorners()

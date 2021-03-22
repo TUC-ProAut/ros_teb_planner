@@ -505,12 +505,10 @@ classdef TebPlanner < handle
 
 
 
-        % Adds critical corners
-        % Function Parameters:
-        %     position   - [x,y] position of the critical corner
+        % Adds one critical corner
         function critical_corner = addCriticalCorner(obj, x, y)
 
-            critical_corner = struct(...
+            critical_corner = struct( ...
                'x', x(1), ...
                'y', y(1));
 
