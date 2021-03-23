@@ -61,12 +61,14 @@ tebplan.clearCriticalCorners()
 
 
 %% basic example (no critical corner)
+stop(timerfind()); delete(timerfind());
 clear
 fprintf("\none critical corner - basic example\n")
 IRobEka_one_CriticalCorner()
 
 
 %% without outer wall
+stop(timerfind()); delete(timerfind());
 clear
 fprintf("\none critical corner - without outer wall\n")
 IRobEka_one_CriticalCorner()
@@ -74,6 +76,7 @@ tebplan.clearPolylineObstacles()
 
 
 %% without critical corner & without outer wall
+stop(timerfind()); delete(timerfind());
 clear
 fprintf("\none critical corner - without critical corner and without outer wall\n")
 IRobEka_one_CriticalCorner()
@@ -85,6 +88,7 @@ tebplan.clearPolylineObstacles()
 
 
 %% without critical corner
+stop(timerfind()); delete(timerfind());
 clear
 fprintf("\ntwo critical corners - without critical corner\n")
 IRobEka_two_CriticalCorners()
@@ -92,6 +96,7 @@ tebplan.clearCriticalCorners()
 
 
 %% basic example
+stop(timerfind()); delete(timerfind());
 clear
 fprintf("\ntwo critical corners - basic example\n")
 IRobEka_two_CriticalCorners()
