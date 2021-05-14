@@ -806,19 +806,21 @@ classdef TebPlanner < handle
         end
 
         % get content of latest response msg(Feedback)
-        function [out, all] = getResultFeedback(obj)
+        function [out, all] = getResultFeedback(obj, msg)
 
             % init result
             out = [];
             all = [];
 
-            % load latest message
-            msg = obj.getResultMsg();
-            % check if latest message is not empty
-            if (isempty(msg))
-                fprintf(['Can''t access feedback - ', ...
-                  'latest message is empty :-(']);
-                return
+            if ((nargin < 2) || isempty(msg))
+                % load latest message
+                msg = obj.getResultMsg();
+                % check if latest message is not empty
+                if (isempty(msg))
+                    fprintf(['Can''t access feedback - ', ...
+                      'latest message is empty :-(']);
+                    return
+                end
             end
 
             ts = msg.Feedback.Trajectories;
