@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% startup.m                                                                   %
-% =========                                                                   %
+% +helper/replan_10_times.m                                                   %
+% =========================                                                   %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -12,13 +12,13 @@
 %   https://www.tu-chemnitz.de/etit/proaut                                    %
 %                                                                             %
 % Authors:                                                                    %
-%   Bhakti Danve, Peter Weissig                                               %
+%   Peter Weissig                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
 % New BSD License                                                             %
 %                                                                             %
-% Copyright (c) 2019-2021 TU Chemnitz                                         %
+% Copyright (c) 2021 TU Chemnitz                                              %
 % All rights reserved.                                                        %
 %                                                                             %
 % Redistribution and use in source and binary forms, with or without          %
@@ -47,71 +47,27 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+%% plan & replan
+tebplan.plan_using_topics();
+fprintf('initial plan\n');
+tebplan.waitForNewResponse();
+%tebplan.getResultFeedback();
+helper.plot_velocity_profil()
+set(gcf, 'NumberTitle', 'off', 'Name', 'initial plan');
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-% For usage instructions on how to create the ros custom messages see the     %
-%   README.md file.                                                           %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% print info
-fprintf('executing startup script for teb-planner ros wrapper\n');
-
-% check if running on older matlab version (before 2020b)
-% see also
-%   https://de.mathworks.com/matlabcentral/answers/623103#answer_525023
-%   https://en.wikipedia.org/wiki/MATLAB#Release_history
-using_older_matlab = verLessThan('matlab', '9.9');
-
-
-% setup paths
-local_matlab_path  = fileparts(fileparts(mfilename('fullpath')));
-messages_gen_path  = fullfile(local_matlab_path, 'msgs');
-if (using_older_matlab)
-    messages_load_path = fullfile(messages_gen_path, 'matlab_gen', 'msggen');
-else
-    messages_load_path = fullfile(messages_gen_path, ...
-      'matlab_msg_gen_ros1', 'glnxa64', 'install', 'm');
+fprintf('replanning');
+for i = 1:10
+    tebplan.replan_using_topics();
+    fprintf(' %2d', i);
+    tebplan.waitForNewResponse();
+    %tebplan.getResultFeedback();
+    helper.plot_velocity_profil()
+    set(gcf, 'NumberTitle', 'off', 'Name', [num2str(i), '. replan']);
 end
+fprintf('\n');
 
-% check python version
-if (~using_older_matlab && (pyenv().Version ~= "2.7"))
-    fprintf('    We are working with ros1 (kinetic, melodic & noetic).\n');
-    fprintf('    Therefore, you need to use python 2.7\n');
-    fprintf('      >> pyenv(''Version'', ''python2.7'')\n');
-end
+clear i;
 
-% check if messages are build
-checked_msgs = [];
-if (exist(messages_load_path, 'dir'))
-    % load messages
-    fprintf('    Loading self build messages\n');
-    addpath(messages_load_path);
-
-    % check if messages are loaded correctly
-    checked_msgs = rosmsg_check();
-    if (isempty(checked_msgs))
-        warning('Can''t find rosmsgs for teb_planner_pa :-(');
-        if (using_older_matlab)
-            fprintf('    Did you update javaclasspath.txt ?\n');
-        end
-    end
-else
-    warning('Can''t load teb_planner_pa messages :-(');
-    fprintf(['    Did you create the custom messages ?\n', ...
-      '      >> rosgenmsg(''', messages_gen_path, ''')\n']);
-end
-
-% check if errors occurred
-if (~isempty(checked_msgs))
-    fprintf('Startup check done :-)\n');
-else
-    fprintf(['    You might also want to read the ', ...
-      'teb_planner_pa_matlab/README.md file.\n']);
-end
-
-clear checked_msgs local_matlab_path  messages_gen_path ...
-  messages_load_path messages_load_link_path messages_load_default_path ...
-  using_older_matlab;
+%% alternative testing using timers
+% this also enables continous republishing for rviz
+helper.testing_using_timers()

@@ -53,6 +53,11 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%% bugfix and initialisation
+helper.bugfix_ros()
+
+
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
 
@@ -89,36 +94,11 @@ tebplan.addCircularObstacle([1,-0.5]);
 %              pass through it
 %              (dynamic reconfigure: Optimization/weight_viapoint)
 
-%% plan using services
-tebplan.plan_using_topics();
+%% do some (re)planning
+%tebplan.plan();
+%tebplan.plan_using_topics();
 
-%% publish the obstacles and robot footprint continuously
-% get internal rosnode
-rosnode = tebplan.getRosNode();
-% create publisher and an empty message
-pub = robotics.ros.Publisher(rosnode,'/teb_planner_node_pa/publish',...
-    'std_msgs/Empty');
-msg = rosmessage(pub);
+%tebplan.replan();
+%tebplan.replan_using_topics();
 
-% create a timer object
-t=timer;
-% set publish rate to 4 Hz
-t.Period = 0.25;
-t.ExecutionMode = 'fixedRate';
-% publish on each timer event
-t.TimerFcn = 'pub.send(msg)';
-% start the timer
-start(t);
-
-% stop the timer (optional)
-%stop(t);
-
-%% further testing (optional)
-% a) do continuous replanning
-%t.TimerFcn = 'tebplan.replan_using_topics();';
-
-% b) minimize distance to boundaries
-%    (dynamic reconfigure: Obstacles/min_obstacle_dist)
-
-% c) auto generate waypoints from initial trajectory
-%    (dynamic reconfigure: ViaPoints/global_plan_viapoint_sep)
+helper.replan_10_times()

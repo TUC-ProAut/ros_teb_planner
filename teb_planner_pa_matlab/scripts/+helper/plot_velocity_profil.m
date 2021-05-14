@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% startup.m                                                                   %
-% =========                                                                   %
+% +helper/plot_velocity_profil.m                                              %
+% ==============================                                              %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -12,13 +12,13 @@
 %   https://www.tu-chemnitz.de/etit/proaut                                    %
 %                                                                             %
 % Authors:                                                                    %
-%   Bhakti Danve, Peter Weissig                                               %
+%   Peter Weissig                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
 % New BSD License                                                             %
 %                                                                             %
-% Copyright (c) 2019-2021 TU Chemnitz                                         %
+% Copyright (c) 2021 TU Chemnitz                                              %
 % All rights reserved.                                                        %
 %                                                                             %
 % Redistribution and use in source and binary forms, with or without          %
@@ -47,71 +47,81 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-% For usage instructions on how to create the ros custom messages see the     %
-%   README.md file.                                                           %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% print info
-fprintf('executing startup script for teb-planner ros wrapper\n');
-
-% check if running on older matlab version (before 2020b)
-% see also
-%   https://de.mathworks.com/matlabcentral/answers/623103#answer_525023
-%   https://en.wikipedia.org/wiki/MATLAB#Release_history
-using_older_matlab = verLessThan('matlab', '9.9');
-
-
-% setup paths
-local_matlab_path  = fileparts(fileparts(mfilename('fullpath')));
-messages_gen_path  = fullfile(local_matlab_path, 'msgs');
-if (using_older_matlab)
-    messages_load_path = fullfile(messages_gen_path, 'matlab_gen', 'msggen');
-else
-    messages_load_path = fullfile(messages_gen_path, ...
-      'matlab_msg_gen_ros1', 'glnxa64', 'install', 'm');
+%% init matlab rosnode (if necessary)
+% motiviated from here:
+%  https://de.mathworks.com/matlabcentral/answers/370444#comment_846475
+try
+    [~] = rosnode('list');
+catch exp    % Error from rosnode list
+    rosinit
 end
 
-% check python version
-if (~using_older_matlab && (pyenv().Version ~= "2.7"))
-    fprintf('    We are working with ros1 (kinetic, melodic & noetic).\n');
-    fprintf('    Therefore, you need to use python 2.7\n');
-    fprintf('      >> pyenv(''Version'', ''python2.7'')\n');
-end
+%% run as subfunction (to avoid polluting the workspace)
+plot_vel__sub(tebplan.getResultFeedback())
 
-% check if messages are build
-checked_msgs = [];
-if (exist(messages_load_path, 'dir'))
-    % load messages
-    fprintf('    Loading self build messages\n');
-    addpath(messages_load_path);
 
-    % check if messages are loaded correctly
-    checked_msgs = rosmsg_check();
-    if (isempty(checked_msgs))
-        warning('Can''t find rosmsgs for teb_planner_pa :-(');
-        if (using_older_matlab)
-            fprintf('    Did you update javaclasspath.txt ?\n');
-        end
+function plot_vel__sub(msg)
+
+
+    %% check msg
+    if (isempty(msg))
+        clf
+        return
     end
-else
-    warning('Can''t load teb_planner_pa messages :-(');
-    fprintf(['    Did you create the custom messages ?\n', ...
-      '      >> rosgenmsg(''', messages_gen_path, ''')\n']);
-end
 
-% check if errors occurred
-if (~isempty(checked_msgs))
-    fprintf('Startup check done :-)\n');
-else
-    fprintf(['    You might also want to read the ', ...
-      'teb_planner_pa_matlab/README.md file.\n']);
-end
+    %% get data
+    % const - rosinit is needed for rosparam to work
+    robot_vmax   = rosparam('get', '/teb_planner_node_pa/max_vel_x');
 
-clear checked_msgs local_matlab_path  messages_gen_path ...
-  messages_load_path messages_load_link_path messages_load_default_path ...
-  using_older_matlab;
+    %% calculate
+    % at the given pose
+    % (which is a bit unfair - the velocity is calculated rel. to next pose)
+    pos = msg(:,1:2);
+    t   = msg(:,4  );
+    vel = vecnorm(diff(pos), 2, 2) ./ diff(t);
+    l   = [0; cumsum(vecnorm(diff(pos), 2, 2))];
+
+    % center points
+    % (this seems to be the right position for the velocities)
+    pos_middle = (pos(1:(end-1), : )  + pos(2:end, : )) / 2;
+    t_middle   = (  t(1:(end-1), : )  +   t(2:end, : )) / 2;
+    l_middle   = (  l(1:(end-1), : )  +   l(2:end, : )) / 2;
+
+    %% plot results
+    subplot(1,2,1)
+    cla
+    hold on
+    plot(pos(:,1), pos(:,2), 'kx', 'DisplayName', 'reference points')
+    plot(pos(:,1), pos(:,2), 'g-', 'DisplayName', 'path')
+
+    legend()
+    xlabel('x in m')
+    ylabel('y in m')
+    title('path')
+    axis equal
+
+
+    subplot(2,2,2)
+    cla
+    hold on
+    plot(l(1:(end-1)), diff(t), 'kx')
+    plot(l_middle, diff(t), 'b-', 'LineWidth', 3)
+    legend('@reference point', 'plotted at midpoints')
+    xlabel('rel. position in m')
+    ylabel('length of timeintervall in s')
+    title('time intervalls')
+
+
+    subplot(2,2,4)
+    cla
+    hold on
+    plot(l(1:(end-1)), vel, 'kx')
+    plot(l_middle, vel, 'b-', 'LineWidth', 3)
+    plot(l(1:(end-1)), repmat(robot_vmax, length(l) - 1, 1), 'r-')
+    legend('@reference point', 'plotted at midpoints', 'vmax_{global}')
+    xlabel('rel. position in m')
+    ylabel('velocity in m/s')
+    title('velocity profil')
+
+    drawnow
+end
