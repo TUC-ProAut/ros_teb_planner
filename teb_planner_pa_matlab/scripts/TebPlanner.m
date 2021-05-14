@@ -62,7 +62,6 @@ classdef TebPlanner < handle
         polylineObstacles   struct; % n*[points=m*[x,y]  , vx,vy]
         polygonObstacles    struct; % n*[points=m*[x,y]  , vx,vy]
         waypoints           struct; % n*[x,y]
-
     end
 
     properties (Access = private)
@@ -127,7 +126,6 @@ classdef TebPlanner < handle
             pub = obj.getRosPublisher();
             sub = obj.getRosSubscriber();
 
-
             % fill message with content
             msg = obj.getRequestMsg();
 
@@ -187,7 +185,6 @@ classdef TebPlanner < handle
             pub = obj.getRosReplanPublisher();
             sub = obj.getRosSubscriber();
 
-
             % fill message with content
             msg = rosmessage('std_msgs/Empty');
 
@@ -227,8 +224,7 @@ classdef TebPlanner < handle
     end
 
 
-
-    % Plan Data collection required for TEB-Planning
+    % data required for TEB-Planning
     methods
 
         % Sets the starting pose for the teb-planner
@@ -374,7 +370,6 @@ classdef TebPlanner < handle
               'vy'     , {});
         end
 
-
         % Adds polyline obstacles;
         % Function Parameters:
         %    points - should contain min. two 2-D points
@@ -441,7 +436,7 @@ classdef TebPlanner < handle
                 obstacle.points(i).y = points(i,2);
             end
 
-            if (isempty(obj.polygonObstacle))
+            if (isempty(obj.polygonObstacles))
                 obj.polygonObstacles = obstacle;
             else
                 obj.polygonObstacles(end + 1) = obstacle;
@@ -582,7 +577,6 @@ classdef TebPlanner < handle
                 % add obst to message
                 msg.Obstacles.Obstacles(end + 1) = obst;
             end
-
 
             % Creating polyline obstacles
             for i = 1:length(obj.polylineObstacles)
