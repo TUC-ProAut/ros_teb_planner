@@ -113,4 +113,5 @@ else
 end
 
 clear checked_msgs local_matlab_path  messages_gen_path ...
-  messages_load_path messages_load_link_path messages_load_default_path;
+  messages_load_path messages_load_link_path messages_load_default_path ...
+  using_older_matlab;
