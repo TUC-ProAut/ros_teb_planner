@@ -62,6 +62,15 @@ classdef TebPlanner < handle
         polylineObstacles   struct; % n*[points=m*[x,y]  , vx,vy]
         polygonObstacles    struct; % n*[points=m*[x,y]  , vx,vy]
         waypoints           struct; % n*[x,y]
+        hasNewResponse = false; % flag for new received msg
+                 %   will be set   on response (service or topic)
+                 %   will be reset on access   (e.g. full feedback, poses, ...)
+        storeNextTopicResponse = false; % this flag can have different types
+                 % 'never'   ... do never store next response
+                 % false     ... do not   store next response
+                 % true      ... store next response only
+                 % 2,3,...   ... store next 2,3,... responses only
+                 % 'always'  ... store all received responses
     end
 
     properties (Access = private)
@@ -112,43 +121,31 @@ classdef TebPlanner < handle
             end
 
             % store response
-            obj.latestMsg = response.Respond;
+            obj.latestMsg      = response.Respond;
+            obj.hasNewResponse = true;
+
             result = true;
         end
 
         function result = plan_using_topics(obj)
 
-            % init result and internal variables
+            % init result
             result = false;
-            obj.latestMsg = [];
 
-            % create publisher & subscriber (only if not created yet)
+            % enable reception of next message
+            obj.incTopicResponseCount()
+
+            % create publisher & the message
             pub = obj.getRosPublisher();
-            sub = obj.getRosSubscriber();
-
             % fill message with content
             msg = obj.getRequestMsg();
-
             % trigger planning
-            sub.NewMessageFcn = @(src, msg) obj.rosCallback(src,msg);
             pub.send(msg);
 
-            start_time = datetime();
-            while true
-                if (~isempty(obj.latestMsg))
-                    break
-                end
-
-                if (seconds(datetime() - start_time) >= obj.maxTimeOut)
-                    warning('timeout using TEB-Planner');
-                    return
-                end
-
-                drawnow();
-                pause(0.01);
+            % wait for response, if result is requested
+            if (nargout > 0)
+                result = obj.waitForNewResponse();
             end
-
-            result = true;
         end
 
         % do the re-planning
@@ -171,55 +168,161 @@ classdef TebPlanner < handle
             end
 
             % store response
-            obj.latestMsg = response.Respond;
+            obj.latestMsg      = response.Respond;
+            obj.hasNewResponse = true;
+
             result = true;
         end
 
         function result = replan_using_topics(obj)
 
-            % init result and internal variables
+            % init result
             result = false;
-            obj.latestMsg = [];
 
-            % create publisher & subscriber (only if not created yet)
+            % enable reception of next message
+            obj.incTopicResponseCount()
+
+            % create publisher & the message
             pub = obj.getRosReplanPublisher();
-            sub = obj.getRosSubscriber();
-
             % fill message with content
             msg = rosmessage('std_msgs/Empty');
-
             % trigger planning
-            sub.NewMessageFcn = @(src, msg) obj.rosCallback(src,msg);
             pub.send(msg);
 
-            start_time = datetime();
-            while true
-                if (~isempty(obj.latestMsg))
-                    break
-                end
+            % wait for response, if result is requested
+            if (nargout > 0)
+                result = obj.waitForNewResponse();
+            end
+        end
 
-                if (seconds(datetime() - start_time) >= obj.maxTimeOut)
-                    warning('timeout using TEB-Planner');
-                    return
-                end
+        % change response mode
+        function setTopicResponseMode(obj, mode)
 
-                drawnow();
-                pause(0.01);
+            % check parameters
+            if (nargin < 2)
+                mode = true; % one-time response
             end
 
-            result = true;
+            % check if variable is a number
+            if (isnumeric(mode))
+                if ((mode < -2) || (mode == 0))
+                    mode = false;
+                elseif (mode == -2)
+                    mode = 'never';
+                elseif (mode == -1)
+                    mode = 'always';
+                elseif (mode == 1)
+                    mode = true;
+                end
+
+            elseif (~islogical(mode) && ...
+              ~strcmp(mode, 'always') && ~strcmp(mode, 'never'))
+                warning('unknown value(-type) for mode %s', mode)
+                return
+            end
+
+            % store current value
+            obj.storeNextTopicResponse = mode;
+
+            % init subscriber, if necessary
+            sub = obj.getRosSubscriber();
+
+            % check if response is enabled
+            if (~islogical(mode) || mode)
+                if (isempty(sub.NewMessageFcn))
+                    sub.NewMessageFcn = @(src, msg) obj.rosCallback(src,msg);
+                end
+            else
+                if (~isempty(sub.NewMessageFcn))
+                    sub.NewMessageFcn = [];
+                end
+            end
         end
     end
 
 
     methods (Access = private)
-        function rosCallback(obj, ~, data)
-            % remove callback
-            sub = obj.getRosSubscriber();
-            sub.NewMessageFcn = [];
+        function count = getTopicResponseCount(obj)
 
-            % store message
-            obj.latestMsg = data;
+            % init result
+            count = 0;
+
+            % get current value
+            value = obj.storeNextTopicResponse;
+
+            % check if variable is bool
+            if (islogical(value))
+                if (value)
+                    count = 1; % one-time response
+                else
+                    count = 0; % always off
+                end
+                return
+            end
+
+            % check if variable is equal to 'always' or 'never'
+            if (strcmp(value, 'never'))
+                count = -2; % never
+                return
+            end
+            if (strcmp(value, 'always'))
+                count = -1; % always on
+                return
+            end
+
+            % check if variable is a number
+            if (isnumeric(value))
+                count = value;
+                return
+            end
+        end
+
+        function incTopicResponseCount(obj)
+
+            % load current response count
+            count = obj.getTopicResponseCount();
+
+            % increment count
+            if (count >= 0)
+                count = count + 1;
+            end
+
+            % store current count (activates/deactivates the receiver)
+            obj.setTopicResponseMode(count)
+        end
+
+        function active = decTopicResponseCount(obj)
+
+            % init result
+            active = false;
+
+            % load current response count
+            count = obj.getTopicResponseCount();
+
+            % deactivate response & return, if disabled
+            if ((count == 0) || (count <= -2))
+                obj.setTopicResponseMode(false)
+                return
+            end
+
+            % decrement count
+            if (count > 0)
+                count = count - 1;
+            end
+
+            % store current count (activates/deactivates the receiver)
+            obj.setTopicResponseMode(count)
+
+            active = true;
+        end
+
+        function rosCallback(obj, ~, data)
+
+            if (obj.decTopicResponseCount())
+                % store message
+                obj.latestMsg      = data;
+                obj.hasNewResponse = true;
+            end
         end
     end
 
@@ -639,19 +742,55 @@ classdef TebPlanner < handle
             out = msg;
         end
 
+        % wait for response msg
+        function result = waitForNewResponse(obj)
+
+            % init result
+            result = false;
+
+            % otherwise, wait for response
+            start_time = datetime();
+            while true
+                if (obj.hasNewResponse)
+                    result = true;
+                    return
+                end
+                count = obj.getTopicResponseCount();
+                if ((count <= -2) || (count == 0))
+                    result = false;
+                    return
+                end
+
+                if (seconds(datetime() - start_time) >= obj.maxTimeOut)
+                    warning('timeout using TEB-Planner');
+                    return
+                end
+
+                drawnow('limitrate');
+                pause(0.01);
+            end
+        end
+
         % get response msg
-        function out = getLatestResponse(obj)
+        function out = getResultMsg(obj)
+            % reset internal flag, because latest msg will be accessed
+            obj.hasNewResponse = false;
+            % return latest message
             out = obj.latestMsg;
         end
 
         % get content of latest response msg(Poses)
         function out = getResultPoses(obj)
-            if (isempty(obj.latestMsg))
+            % load latest message
+            msg = obj.getResultMsg();
+            % check if latest message is not empty
+            if (isempty(msg))
                 fprintf(['Can''t access poses - ', ...
                   'latest message is empty :-(']);
                 return
             end
-            p = obj.latestMsg.Poses.Poses;
+            % load poses
+            p = msg.Poses.Poses;
             poses = zeros(length(p), 3);
             if (~isempty(p))
                 for i = 1:length(p)
@@ -668,14 +807,23 @@ classdef TebPlanner < handle
 
         % get content of latest response msg(Feedback)
         function [out, all] = getResultFeedback(obj)
-            if (isempty(obj.latestMsg))
+
+            % init result
+            out = [];
+            all = [];
+
+            % load latest message
+            msg = obj.getResultMsg();
+            % check if latest message is not empty
+            if (isempty(msg))
                 fprintf(['Can''t access feedback - ', ...
                   'latest message is empty :-(']);
                 return
             end
-            ts = obj.latestMsg.Feedback.Trajectories;
+
+            ts = msg.Feedback.Trajectories;
             ts_curr_index = 1 + ...
-              obj.latestMsg.Feedback.SelectedTrajectoryIdx;
+              msg.Feedback.SelectedTrajectoryIdx;
 
             all = cell(length(ts), 1);
             out = [];
