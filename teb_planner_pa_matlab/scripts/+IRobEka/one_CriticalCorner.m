@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% IRobEka_all.m                                                               %
-% =============                                                               %
+% +IrobEka/one_CriticalCorner.m                                               %
+% =============================                                               %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -53,50 +53,45 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% without critical corner
-clear
-fprintf("\none critical corner - without critical corner\n")
-IRobEka_one_CriticalCorner()
-tebplan.clearCriticalCorners()
+
+%% instantiate TebPlanner class
+tebplan = TebPlanner;
+% bugfix_ros()
 
 
-%% basic example (no critical corner)
-stop(timerfind()); delete(timerfind());
-clear
-fprintf("\none critical corner - basic example\n")
-IRobEka_one_CriticalCorner()
+%% set initial plan for the robot
+poses = zeros(13,3);
+% first segment: straight line along x-axis
+poses(1:6 , 1) = -5:0 ; poses(1:6 , 2) = -1;
+% second segment: straight line along y-axis
+poses(7:13, 1) =  1   ; poses(7:13, 2) =  0:6; poses(7:13, 3) = pi/2;
+% set initial plan
+tebplan.setInitialPlan(poses);
 
 
-%% without outer wall
-stop(timerfind()); delete(timerfind());
-clear
-fprintf("\none critical corner - without outer wall\n")
-IRobEka_one_CriticalCorner()
-tebplan.clearPolylineObstacles()
+%% create enviroment
+tebplan.clearPolygonObstacles();
+tebplan.clearPolylineObstacles();
+
+% one vertical shelf
+base_obstacle=[ 0  , 0  ;   3.0, 0  ;   3.0, 8.0;   0  , 8.0];
+dy =  0  ;
+dx = -3.0;
+
+tebplan.addPolygonObstacle(base_obstacle + [dx, dy]);
+
+% surrounding wall
+tebplan.addPolylineObstacle([-5  ,-2  ; 2  ,-2  ; 2  , 8.0]);
+
+% remove unused variables
+clear dx dy base_obstacle;
 
 
-%% without critical corner & without outer wall
-stop(timerfind()); delete(timerfind());
-clear
-fprintf("\none critical corner - without critical corner and without outer wall\n")
-IRobEka_one_CriticalCorner()
-tebplan.clearCriticalCorners()
-tebplan.clearPolylineObstacles()
+%% add one critical corner
+tebplan.clearCriticalCorners();
+tebplan.addCriticalCorner( 0  , 0  );
 
 
-
-
-
-%% without critical corner
-stop(timerfind()); delete(timerfind());
-clear
-fprintf("\ntwo critical corners - without critical corner\n")
-IRobEka_two_CriticalCorners()
-tebplan.clearCriticalCorners()
-
-
-%% basic example
-stop(timerfind()); delete(timerfind());
-clear
-fprintf("\ntwo critical corners - basic example\n")
-IRobEka_two_CriticalCorners()
+%% show results
+%helper.replan_10_times()
+%helper.testing_using_timers()

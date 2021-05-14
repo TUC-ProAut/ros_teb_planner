@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% IRobEka_one_CriticalCorner.m                                                %
-% ============================                                                %
+% +IrobEka/two_CriticalCorners.m                                              %
+% ==============================                                              %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -56,20 +56,13 @@
 
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
-
-% temporary bugfix in matlab:
-%   create a publisher on a default-topic with default message
-%   see also: https://de.mathworks.com/matlabcentral/answers/734013#comment_1332042
-dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
+% bugfix_ros()
 
 
 %% set initial plan for the robot
-poses = zeros(13,3);
-% first segment: straight line along x-axis
-poses(1:6 , 1) = -5:0 ; poses(1:6 , 2) = -1;
-% second segment: straight line along y-axis
-poses(7:13, 1) =  1   ; poses(7:13, 2) =  0:6; poses(7:13, 3) = pi/2;
-% set initial plan
+% (this is just a straight line along x-axis)
+poses = zeros(9,3);
+poses(1:9 , 1) = -5:3 ; poses(1:9 , 2) =  1  ;
 tebplan.setInitialPlan(poses);
 
 
@@ -77,64 +70,24 @@ tebplan.setInitialPlan(poses);
 tebplan.clearPolygonObstacles();
 tebplan.clearPolylineObstacles();
 
-% one vertical shelf
+% two lanes of vertical shelfes
 base_obstacle=[ 0  , 0  ;   3.0, 0  ;   3.0, 8.0;   0  , 8.0];
-dy =  0  ;
-dx = -3.0;
-
-tebplan.addPolygonObstacle(base_obstacle + [dx, dy]);
-
-% surrounding wall
-tebplan.addPolylineObstacle([-5  ,-2  ; 2  ,-2  ; 2  , 8.0]);
+for dy = (-1:0) * 10.0 + 2.0
+    for dx = (-1:1) * 5.0 - 4.0
+        tebplan.addPolygonObstacle(base_obstacle + [dx, dy]);
+    end
+end
 
 % remove unused variables
 clear dx dy base_obstacle;
 
 
-%% add one critical corner
+%% add critical corners
 tebplan.clearCriticalCorners();
-tebplan.addCriticalCorner( 0  , 0  );
+tebplan.addCriticalCorner(-1  , 2  );
+tebplan.addCriticalCorner(-1  , 0  );
 
 
-%% plan
-tebplan.plan_using_topics();
-
-
-%% publish the obstacles and robot footprint continuously
-% get internal rosnode
-rosnode = tebplan.getRosNode();
-% create publisher and an empty message
-pub = robotics.ros.Publisher(rosnode,'/teb_planner_node_pa/publish',...
-    'std_msgs/Empty');
-msg = rosmessage(pub);
-
-% create a timer object
-t_pub = timer;
-% set publish rate to 4 Hz
-t_pub.Period = 0.25;
-t_pub.ExecutionMode = 'fixedRate';
-% publish on each timer event
-t_pub.TimerFcn = 'pub.send(msg)';
-% start the timer
-start(t_pub);
-
-% stop the timer (optional)
-%stop(t);
-
-%% further testing (optional)
-% a) do continuous replanning
-t_plan = timer;
-t_plan.Period        = 10;
-t_plan.ExecutionMode = 'fixedRate';
-t_plan.TimerFcn      = 'tebplan.plan_using_topics();';
-start(t_plan);
-
-% b) do continuous replanning
-t_replan = timer;
-t_replan.Period        = 1;
-t_replan.ExecutionMode = 'fixedRate';
-t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
-start(t_replan);
-
-%% stop all timers
-%stop(timerfind())
+%% show results
+%helper.replan_10_times()
+%helper.testing_using_timers()
