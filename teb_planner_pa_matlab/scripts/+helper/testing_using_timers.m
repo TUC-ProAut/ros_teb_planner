@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% TebPlannerExample.m                                                         %
-% ===================                                                         %
+% +helper/testing_using_timers.m                                              %
+% ==============================                                              %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -12,13 +12,13 @@
 %   https://www.tu-chemnitz.de/etit/proaut                                    %
 %                                                                             %
 % Authors:                                                                    %
-%   Bhakti Danve                                                              %
+%   Peter Weissig                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
 % New BSD License                                                             %
 %                                                                             %
-% Copyright (c) 2019-2021 TU Chemnitz                                         %
+% Copyright (c) 2020-2021 TU Chemnitz                                         %
 % All rights reserved.                                                        %
 %                                                                             %
 % Redistribution and use in source and binary forms, with or without          %
@@ -46,59 +46,38 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Test script to use TebPlanner Class methods to send data to
-% teb_planner_node_pa. Make sure to keep the node running before executing
-% the test_TebPlanner script. Use polygonal robot footprint of
-% polygonal_robot_params.yaml file for better results.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% initialize data structure
+t = struct();
+
+% create publisher & message for continuous
+t.node = tebplan.getRosNode();
+t.pub  = robotics.ros.Publisher(t.node,'/teb_planner_node_pa/publish',...
+  'std_msgs/Empty');
+t.msg  = rosmessage(t.pub);
+
+% publishing publish timer
+t.t_pub = timer;
+t.t_pub.Period        = 1;
+t.t_pub.ExecutionMode = 'fixedRate';
+t.t_pub.TimerFcn      = 't.pub.send(t.msg)';
+
+% plan timer
+t.t_plan = timer;
+t.t_plan.Period        = 20;
+t.t_plan.ExecutionMode = 'fixedRate';
+t.t_plan.TimerFcn      = 'tebplan.plan_using_topics();';
+
+% replan timer
+t.t_replan = timer;
+t.t_replan.Period        = 2;
+t.t_replan.ExecutionMode = 'fixedRate';
+t.t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
 
 
-%% bugfix and initialisation
-helper.bugfix_ros()
+start(t.t_pub);
+%start(t.t_plan);
+%start(t.t_replan);
 
-
-%% instantiate TebPlanner class
-tebplan = TebPlanner;
-
-% temporary bugfix in matlab:
-%   create a publisher on a default-topic with default message
-%   see also: https://de.mathworks.com/matlabcentral/answers/734013#comment_1332042
-dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
-
-%% set initial plan for the robot
-% first segment: straight line along x-axis
-poses = zeros(10,3);
-poses(1:7 ,1) = -3:3; poses(1:7 ,2) = -0.25; poses(1:6 ,3) =  0;
-                                             poses(7   ,3) =  pi/4;
-% second segment: straight line along y-axis
-poses(8:10,1) =    3; poses(8:10,2) =  1:3; poses(8:10,3) =  pi/2;
-% set initial plan
-tebplan.setInitialPlan(poses);
-
-%% set start velocity of the robot
-% vx = 0.5 m/s; vy = 0
-tebplan.setStartVelocity(0.5,0);
-
-%% add boundaries as polyline obstacles
-tebplan.addPolylineObstacle([-3, 1,0; 2, 1,0; 2,3,0]);
-tebplan.addPolylineObstacle([-3,-1,0; 4,-1,0; 4,3,0]);
-
-%% add pedestrian as point obstacle
-tebplan.addCircularObstacle([1,-0.5]);
-
-%% add waypoint (optional)
-%tebplan.addWaypoint(-1,2);
-
-% fine tuning: increase the weight of the waypoint to make the plan
-%              pass through it
-%              (dynamic reconfigure: Optimization/weight_viapoint)
-
-%% do some (re)planning
-%tebplan.plan();
-%tebplan.plan_using_topics();
-
-%tebplan.replan();
-%tebplan.replan_using_topics();
-
-helper.replan_10_times()
+%% stop all timers
+%stop(timerfind())
