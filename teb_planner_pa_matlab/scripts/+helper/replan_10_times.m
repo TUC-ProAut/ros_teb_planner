@@ -49,13 +49,10 @@
 
 %% use flags to finetune script
 if (~exist('flags', 'var'))
-    flags = struct()
+    flags = struct();
 end
 if (~isfield(flags, 'plot_matlab'))
     flags.plot_matlab = true;
-end
-if (~isfield(flags, 'run_pub_timer'))
-    flags.run_pub_timer = true;
 end
 
 
@@ -65,10 +62,10 @@ fprintf('initial plan\n');
 tebplan.waitForNewResponse();
 if (flags.plot_matlab)
     helper.plot_velocity_profil()
+    set(gcf, 'NumberTitle', 'off', 'Name', 'initial plan');
 else
     tebplan.getResultFeedback(); % dummy read
 end
-set(gcf, 'NumberTitle', 'off', 'Name', 'initial plan');
 
 fprintf('replanning');
 for i = 1:10
@@ -77,10 +74,10 @@ for i = 1:10
     tebplan.waitForNewResponse();
     if (flags.plot_matlab)
         helper.plot_velocity_profil()
+        set(gcf, 'NumberTitle', 'off', 'Name', [num2str(i), '. replan']);
     else
         tebplan.getResultFeedback(); % dummy read
     end
-    set(gcf, 'NumberTitle', 'off', 'Name', [num2str(i), '. replan']);
 end
 fprintf('\n');
 
@@ -89,6 +86,4 @@ clear i;
 
 %% alternative testing using timers
 % this also enables continous republishing for rviz
-if (flags.run_pub_timer)
-    helper.testing_using_timers()
-end
+helper.setup_timers()

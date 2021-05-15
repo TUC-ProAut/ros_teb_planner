@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% +helper/testing_using_timers.m                                              %
-% ==============================                                              %
+% +helper/setup_timers.m                                                      %
+% ======================                                                      %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -47,37 +47,69 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+%% use flags to finetune script
+if (~exist('flags', 'var'))
+    flags = struct();
+end
+if (~isfield(flags, 'run_pub_timer'))
+    flags.run_pub_timer = true;
+end
+
+
 %% initialize data structure
-t = struct();
+if (~exist('t', 'var') || ~isstruct(t))
+    t = struct();
+end
 
 % create publisher & message for continuous
-t.node = tebplan.getRosNode();
-t.pub  = robotics.ros.Publisher(t.node,'/teb_planner_node_pa/publish',...
-  'std_msgs/Empty');
-t.msg  = rosmessage(t.pub);
+if (~isfield('t', 'pub'))
+    if (~isfield('t', 'node'))
+        if (~exist('tebplan', 'var'))
+            tebplan = TebPlanner();
+        end
+        t.node = tebplan.getRosNode();
+    end
+    t.pub  = robotics.ros.Publisher(t.node, ...
+      '/teb_planner_node_pa/publish', 'std_msgs/Empty');
+end
+if (~isfield('t', 'msg'))
+    t.msg  = rosmessage(t.pub);
+end
 
 % publishing publish timer
-t.t_pub = timer;
-t.t_pub.Period        = 1;
-t.t_pub.ExecutionMode = 'fixedRate';
-t.t_pub.TimerFcn      = 't.pub.send(t.msg)';
+if (~isfield('t', 't_pub'))
+    t.t_pub = timer;
+    t.t_pub.Period        = 1;
+    t.t_pub.ExecutionMode = 'fixedRate';
+    t.t_pub.TimerFcn      = 't.pub.send(t.msg)';
+
+    if (flags.run_pub_timer)
+        start(t.t_pub)
+    end
+end
 
 % plan timer
-t.t_plan = timer;
-t.t_plan.Period        = 20;
-t.t_plan.ExecutionMode = 'fixedRate';
-t.t_plan.TimerFcn      = 'tebplan.plan_using_topics();';
+if (~isfield('t', 't_plan'))
+    t.t_plan = timer;
+    t.t_plan.Period        = 20;
+    t.t_plan.ExecutionMode = 'fixedRate';
+    t.t_plan.TimerFcn      = 'tebplan.plan_using_topics();';
+end
 
 % replan timer
-t.t_replan = timer;
-t.t_replan.Period        = 2;
-t.t_replan.ExecutionMode = 'fixedRate';
-t.t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
+if (~isfield('t', 't_replan'))
+    t.t_replan = timer;
+    t.t_replan.Period        = 2;
+    t.t_replan.ExecutionMode = 'fixedRate';
+    t.t_replan.TimerFcn      = 'tebplan.replan_using_topics();';
+end
 
 
-start(t.t_pub);
+%% start a certain timer
+%start(t.t_pub);
 %start(t.t_plan);
 %start(t.t_replan);
+
 
 %% stop all timers
 %stop(timerfind())

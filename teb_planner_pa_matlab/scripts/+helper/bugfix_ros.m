@@ -46,15 +46,16 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% create tebplanner-object
-if (~exist('tebplan', 'var'))
-    tebplan = TebPlanner();
-end
 
 % temporary bugfix in matlab:
 %   create a publisher on a default-topic with default message
 %   see also: https://de.mathworks.com/matlabcentral/answers/734013#comment_1332042
-dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
+if (~exist('dummy_pub', 'var'))
+    % check/create tebplanner-object
+    if (~exist('tebplan', 'var'))
+        tebplan = TebPlanner();
+    end
 
-% wait a little bit
-pause(1.0)
+    % create dummy publisher
+    dummy_pub = robotics.ros.Publisher(tebplan.getRosNode(), 'rosout');
+end
