@@ -53,22 +53,52 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% run bugfix
-% helper.bugfix_ros()
+%% setup flags
+if (~exist('flags', 'var'))
+    flags = struct();
+end
+if (~isfield(flags, 'plot_matlab'))
+    % disable continuous plotting in helper.replan_10_times()
+    flags.plot_matlab = false;
+end
 
-%% based on scenario 1.b)
-IRobEka.one_CriticalCorner()
-tebplan.clearPolylineObstacles()
-%tebplan.clearCriticalCorners
+%% need a base scenario
+if (~exist('tebplan', 'var'))
+    % based on scenario 1.b) by default
+    IRobEka.one_CriticalCorner()
+    tebplan.clearPolylineObstacles()
+    %tebplan.clearCriticalCorners
+end
 
-% optimize trajectory
+%% set virtual person & publish it's start position
+person = struct();
+person.pos_init = [1,  4  ];
+person.pos_seen = [1,  0.5];
+person.vel = [0, -0.75];
+
+person.ros = struct();
+person.ros.topic_name = '/person';
+person.ros.topic_type = 'geometry_msgs/PointStamped';
+person.ros.pub = robotics.ros.Publisher( tebplan.getRosNode(), ...
+  person.ros.topic_name, person.ros.topic_type);
+
+person.ros.msg = rosmessage(person.ros.topic_type);
+person.ros.msg.Header.FrameId = 'odom';
+
+% publish initial position of person
+person.ros.msg.Point.X = person.pos_init(1);
+person.ros.msg.Point.Y = person.pos_init(2);
+person.ros.pub.send(person.ros.msg)
+
+
+%% optimize & store initial trajectory
 helper.replan_10_times();
 
-%% store initial plan & publish it
+% store initial trajectory
 init_path = struct();
 init_path.poses = tebplan.getResultFeedback();
 
-
+% prepare publication of trajectory
 init_path.ros = struct();
 init_path.ros.topic_name = '/path';
 init_path.ros.topic_type = 'nav_msgs/Path';
@@ -84,42 +114,40 @@ for i = 1:(size(init_path.poses, 1) - 1)
     init_path.ros.msg.Poses(i) = pose;
     init_path.ros.pub.send(init_path.ros.msg);
 end
+
+% end of initial path - good position for a break point ;-)
+pause(1)
+
+
+%% switch to second part - person is just recognized close to the corner
+% publish original trajectory
 init_path.ros.pub.send(init_path.ros.msg);
 
-
-%% set virtual person
-person = struct();
-person.pos_init = [1,  4  ];
-person.pos_seen = [1,  0.5];
-person.vel = [0, -0.75];
-
-person.ros = struct();
-person.ros.topic_name = '/person';
-person.ros.topic_type = 'geometry_msgs/PointStamped';
-person.ros.pub = robotics.ros.Publisher( tebplan.getRosNode(), ...
-  person.ros.topic_name, person.ros.topic_type);
-
-person.ros.msg = rosmessage(person.ros.topic_type);
-person.ros.msg.Header.FrameId = 'odom';
-
-% plot first pose of person
-person.ros.msg.Point.X = person.pos_init(1);
-person.ros.msg.Point.Y = person.pos_init(2);
+% publish new position of person
+person.ros.msg.Point.X = person.pos_seen(1);
+person.ros.msg.Point.Y = person.pos_seen(2);
 person.ros.pub.send(person.ros.msg)
+
+% add person as obstacle
+tebplan.clearCircularObstacles();
+tebplan.addCircularObstacle(person.pos_seen, person.vel, 0.25);
+
 
 %% advance simulation
 for i = 15:25
 
-    %% reinitialize teb plan
+    % print current pose number
+    fprintf('\nstarting at pose %d - ', i);
+
+    % reinitialize teb plan
     tebplan.setInitialPlan(init_path.poses(i:end,1:3));
+    vel = norm(diff(init_path.poses([i-1 , i+1], 1:2))) / ...
+          diff(init_path.poses([i-1 , i+1], 4));
+    tebplan.setStartVelocity(vel);
 
-    %% set person as obstacle
-    tebplan.clearCircularObstacles();
-    tebplan.addCircularObstacle(person.pos_seen, person.vel, 0.25);
-
-    %% replan trajectory
+    % replan trajectory
     helper.replan_10_times();
 
-    %% wait
+    % end of optimization - good position for a break point ;-)
     pause(1)
 end

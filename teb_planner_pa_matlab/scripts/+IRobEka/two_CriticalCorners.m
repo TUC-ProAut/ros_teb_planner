@@ -56,7 +56,7 @@
 
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
-% helper.bugfix_ros()
+helper.bugfix_ros()
 
 
 %% set initial plan for the robot
@@ -88,6 +88,7 @@ tebplan.addCriticalCorner(-1  , 2  );
 tebplan.addCriticalCorner(-1  , 0  );
 
 
-%% show results
+%% plan and show results
+%tebplan.plan_using_topics();
 %helper.replan_10_times()
-%helper.testing_using_timers()
+%helper.setup_timers()

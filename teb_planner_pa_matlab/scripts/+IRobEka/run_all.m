@@ -52,14 +52,15 @@
 % before running this script.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %% bugfix and initialisation
+helper.clear_workspace()
 helper.bugfix_ros()
 
 
 
 %% 1.a) base planner
-helper.clear_workspace()
-
 str='scenario 1a - with outer wall - base teb-planner';
 fprintf('\n%s\n', str); sgtitle(str);
 
@@ -68,10 +69,7 @@ tebplan.clearCriticalCorners()
 
 helper.replan_10_times()
 
-
 %% 1.a) with cc
-helper.clear_workspace()
-
 str='scenario 1a - with outer wall - considering critical corner';
 fprintf('\n%s\n', str); sgtitle(str);
 
@@ -80,9 +78,8 @@ IRobEka.one_CriticalCorner()
 helper.replan_10_times()
 
 
-%% 1.b) base planner
-helper.clear_workspace()
 
+%% 1.b) base planner
 str='scenario 1b - only inner wall - base teb-planner';
 fprintf('\n%s\n', str); sgtitle(str);
 
@@ -92,10 +89,7 @@ tebplan.clearPolylineObstacles()
 
 helper.replan_10_times()
 
-
 %% 1.b) with cc
-helper.clear_workspace()
-
 str='scenario 1b - only inner wall - considering critical corner';
 fprintf('\n%s\n', str); sgtitle(str);
 
@@ -105,9 +99,8 @@ tebplan.clearPolylineObstacles()
 helper.replan_10_times()
 
 
-%% 2. base planner
-helper.clear_workspace()
 
+%% 2. base planner
 str='scenario 2 - base teb-planner';
 fprintf('\n%s\n', str); sgtitle(str);
 
@@ -116,13 +109,35 @@ tebplan.clearCriticalCorners()
 
 helper.replan_10_times()
 
-
 %% 2. with cc
-helper.clear_workspace()
-
 str='scenario 2 - considering critical corner';
 fprintf('\n%s\n', str); sgtitle(str);
 
 IRobEka.two_CriticalCorners()
 
 helper.replan_10_times()
+
+
+
+%% 3. base planner
+str='hidden person - base teb-planner';
+fprintf('\n%s\n', str);
+
+flags.plot_matlab = false;
+
+IRobEka.one_CriticalCorner()
+tebplan.clearPolylineObstacles()
+tebplan.clearCriticalCorners()
+
+IRobEka.hidden_person()
+
+%% 3. with cc
+str='hidden person - considering critical corner';
+fprintf('\n%s\n', str);
+
+flags.plot_matlab = false;
+
+IRobEka.one_CriticalCorner()
+tebplan.clearPolylineObstacles()
+
+IRobEka.hidden_person()
