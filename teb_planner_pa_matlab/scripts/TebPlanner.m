@@ -889,7 +889,7 @@ classdef TebPlanner < handle
 
                     temp = t(i).Pose.Orientation;
                     temp = [temp.W, temp.X, temp.Y, temp.Z];
-                    poses(i,3) = quat2angle(temp) / 180 * pi;
+                    poses(i,3) = quat2angle(temp);
 
                     poses(i,4) = t(i).TimeFromStart.seconds;
                 end
