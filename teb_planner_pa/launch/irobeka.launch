@@ -5,10 +5,11 @@
       name="teb_planner_node_pa" output="screen" >
         <rosparam file="$(find teb_planner_pa)/cfg/irobeka_robot_params.yaml"
           command="load" />
-        <param name="no_inner_iterations" value="10" />
-        <param name="no_outer_iterations" value="10" />
-        <param name="dt_hysteresis"       value="0.05" />
-        <param name="dt_force_equal"      value="true" />
+        <param name="no_inner_iterations"       value="10"   />
+        <param name="no_outer_iterations"       value="10"   />
+        <param name="dt_hysteresis"             value="0.05" />
+        <param name="dt_force_equal"            value="true" />
+        <param name="include_dynamic_obstacles" value="true" />
     </node>
 
     <!--- start rviz -->
