@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
-% +IrobEka/one_CriticalCorner.m                                               %
-% =============================                                               %
+% +IrobEka/hidden_person.m                                                    %
+% ========================                                                    %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -53,45 +53,73 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-%% instantiate TebPlanner class
-tebplan = TebPlanner;
+%% run bugfix
 % helper.bugfix_ros()
 
+%% based on scenario 1.b)
+IRobEka.one_CriticalCorner()
+tebplan.clearPolylineObstacles()
+%tebplan.clearCriticalCorners
 
-%% set initial plan for the robot
-poses = zeros(13,3);
-% first segment: straight line along x-axis
-poses(1:6 , 1) = -5:0 ; poses(1:6 , 2) = -1;
-% second segment: straight line along y-axis
-poses(7:13, 1) =  1   ; poses(7:13, 2) =  0:6; poses(7:13, 3) = pi/2;
-% set initial plan
-tebplan.setInitialPlan(poses);
+% optimize trajectory
+helper.replan_10_times();
 
-
-%% create enviroment
-tebplan.clearPolygonObstacles();
-tebplan.clearPolylineObstacles();
-
-% one vertical shelf
-base_obstacle=[ 0  , 0  ;   3.0, 0  ;   3.0, 8.0;   0  , 8.0];
-dy =  0  ;
-dx = -3.0;
-
-tebplan.addPolygonObstacle(base_obstacle + [dx, dy]);
-
-% surrounding wall
-tebplan.addPolylineObstacle([-5  ,-2  ; 2  ,-2  ; 2  , 8.0]);
-
-% remove unused variables
-clear dx dy base_obstacle;
+%% store initial plan & publish it
+init_path = struct();
+init_path.poses = tebplan.getResultFeedback();
 
 
-%% add one critical corner
-tebplan.clearCriticalCorners();
-tebplan.addCriticalCorner( 0  , 0  );
+init_path.ros = struct();
+init_path.ros.topic_name = '/path';
+init_path.ros.topic_type = 'nav_msgs/Path';
+init_path.ros.pub = robotics.ros.Publisher( tebplan.getRosNode(), ...
+  init_path.ros.topic_name, init_path.ros.topic_type);
+
+init_path.ros.msg = rosmessage(init_path.ros.topic_type);
+init_path.ros.msg.Header.FrameId = 'odom';
+for i = 1:(size(init_path.poses, 1) - 1)
+    pose = rosmessage('geometry_msgs/PoseStamped');
+    pose.Pose.Position.X = init_path.poses(i,1);
+    pose.Pose.Position.Y = init_path.poses(i,2);
+    init_path.ros.msg.Poses(i) = pose;
+    init_path.ros.pub.send(init_path.ros.msg);
+end
+init_path.ros.pub.send(init_path.ros.msg);
 
 
-%% show results
-%helper.replan_10_times()
-%helper.testing_using_timers()
+%% set virtual person
+person = struct();
+person.pos_init = [1,  4  ];
+person.pos_seen = [1,  0.5];
+person.vel = [0, -0.75];
+
+person.ros = struct();
+person.ros.topic_name = '/person';
+person.ros.topic_type = 'geometry_msgs/PointStamped';
+person.ros.pub = robotics.ros.Publisher( tebplan.getRosNode(), ...
+  person.ros.topic_name, person.ros.topic_type);
+
+person.ros.msg = rosmessage(person.ros.topic_type);
+person.ros.msg.Header.FrameId = 'odom';
+
+% plot first pose of person
+person.ros.msg.Point.X = person.pos_init(1);
+person.ros.msg.Point.Y = person.pos_init(2);
+person.ros.pub.send(person.ros.msg)
+
+%% advance simulation
+for i = 15:25
+
+    %% reinitialize teb plan
+    tebplan.setInitialPlan(init_path.poses(i:end,1:3));
+
+    %% set person as obstacle
+    tebplan.clearCircularObstacles();
+    tebplan.addCircularObstacle(person.pos_seen, person.vel, 0.25);
+
+    %% replan trajectory
+    helper.replan_10_times();
+
+    %% wait
+    pause(1)
+end

@@ -56,7 +56,7 @@
 
 %% instantiate TebPlanner class
 tebplan = TebPlanner;
-% bugfix_ros()
+% helper.bugfix_ros()
 
 
 %% set initial plan for the robot
