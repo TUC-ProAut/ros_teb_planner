@@ -580,7 +580,7 @@ classdef TebPlanner < handle
                'x', x(1), ...
                'y', y(1));
 
-            if (isempty(obj.waypoint))
+            if (isempty(obj.waypoints))
                 obj.waypoints = way_point;
             else
                 obj.waypoints(end + 1) = way_point;
